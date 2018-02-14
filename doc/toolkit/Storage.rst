@@ -1,0 +1,2 @@
+.. automodule:: daisy.Storage
+   :members:
