@@ -1,0 +1,3 @@
+.. automodule:: daisy.Arvados
+   :members:
+

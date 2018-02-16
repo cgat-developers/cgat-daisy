@@ -1,0 +1,199 @@
+# This variable replaces DATADIR in the paths below.
+data_directory: test_data
+
+tool:
+
+  ignore:
+    # needs checking
+    - bcftools_intersect_lookup
+    # takes too long
+    - graphmap
+    # not implemented
+    - pbsim_fastq
+    # requires py2
+    - manta_strelka
+    # memory usage to high (60Gb)
+    - isaac_align
+
+  reference_fasta: DATADIR/hs37d5.fa
+  bam: DATADIR/exome.bam
+  vcf: DATADIR/exome.vcf.gz
+  bed: DATADIR/exome.bed.gz
+  fastq: DATADIR/exome_1.fq.gz
+  fasta: DATADIR/exome_1.fasta
+  file: DATADIR/exome.bed.gz
+
+  annotate_with_truth:
+    vcf:
+      target: DATADIR/exome.vcf.gz
+      test:
+        fp: DATADIR/exome.vcf.gz
+        fn: DATADIR/exome.vcf.gz
+        tp: DATADIR/exome.vcf.gz
+      compare:
+        fp: DATADIR/exome.vcf.gz
+        fn: DATADIR/exome.vcf.gz
+        tp: DATADIR/exome.vcf.gz
+
+  bcftools_intersect:
+    vcf:
+      - DATADIR/exome.vcf.gz
+      - DATADIR/exome.vcf.gz
+
+  bcftools_intersect_lookup:
+    vcf:
+      - DATADIR/exome.vcf.gz
+      - DATADIR/exome.vcf.gz
+      - DATADIR/exome.vcf.gz
+
+  freebayes:
+    options: -r 10:10000000-11000000
+
+  samtools:
+    options: --positions DATADIR/exome.bed.gz
+
+  daisy_bam2pileup: --input-bed=DATADIR/exome.bed.gz
+
+  ont_large_variant_caller:
+    options: --region 22
+    bam: DATADIR/ont.bam
+
+  isaac_align:
+    fastq:
+      - DATADIR/exome_1.fq.gz
+      - DATADIR/exome_2.fq.gz
+
+  modify:
+    data: DATADIR/exome_1.fasta
+
+  modify:
+    data: DATADIR/exome_1.fasta
+
+  identity:
+    data: DATADIR/exome_1.fasta
+
+  gtf2cds_bed:
+    gtf: DATADIR/geneset.gtf.gz
+
+  fasta2fasta:
+    options: --method=nop
+
+metric:
+
+  ignore:
+    - ont_.*
+    - last_.*
+    - IE_.*
+    - cancer_.*
+    # segfaults
+    - vcftools_tstv_by_count
+    # requires multiple changes
+    - daisy_vcfqc_report
+
+  vcf:
+    patterns:
+      - vcf_.*
+      - vcftools_.*
+      - bcftools_.*
+      - daisy_vcf.*
+      - rtg_.*
+      - vcf_bedtools_jaccard
+    files: DATADIR/exome.vcf.gz
+
+  bam:
+    patterns:
+      - bam_.*
+      - daisy_bam2.*
+      - samtools_.*
+      - picard_collect.*
+    files: DATADIR/exome.bam
+
+  fasta:
+    patterns:
+      - fasta_.*
+      - daisy_fasta.*
+    files: 
+      DATADIR/exome_1.fasta
+
+  fastq:
+    patterns:
+      - fastq_.*
+    files: 
+      DATADIR/exome_1.fq.gz
+
+  bed:
+    patterns:
+      - bedtools_.*
+    files:
+      DATADIR/exome.bed.gz
+    
+  daisy_bam2depth:
+    reference_fasta: DATADIR/hs37d5.fa
+
+  daisy_bam_compare_alignments:
+    files: DATADIR/ont.bam
+    reference_bam: DATADIR/ont.bam
+
+  daisy_vcf_stats:
+    reference_fasta: DATADIR/hs37d5.fa
+
+  bcftools_query:
+    options: -f "%CHROM\t%POS[\t%DP]\n"
+
+  bcftools_query_sample:
+    options: -f "%CHROM\t%POS[\t%DP]\n"
+  
+  bam_bedtools_coverage:
+    reference_vcf: DATADIR/exome.vcf.gz
+
+  bedtools_intersect:
+    reference_bed: DATADIR/exome.bed.gz
+
+  bedtools_intersect_and_annotate:
+    reference_bed: DATADIR/exome.bed.gz
+
+  bedtools_jaccard:
+    reference_bed: DATADIR/exome.bed.gz
+
+  vcf_bedtools_jaccard:
+    reference_vcf: DATADIR/exome.vcf.gz
+
+  bcftools_stats_compare_vcf_to_truth_vcf:
+    reference_vcf: DATADIR/exome.vcf.gz
+    reference_fasta: DATADIR/hs37d5.fa
+
+  bcftools_roh:
+    reference_fasta: DATADIR/hs37d5.fa
+
+  daisy_vcf_compare_phase:
+    reference_vcf: DATADIR/exome.vcf.gz
+    reference_fasta: DATADIR/hs37d5.fa
+
+  rtg_vcfdiff:
+    reference_vcf: DATADIR/exome.vcf.gz
+    reference_sdf: DATADIR/exome.vcf.gz
+    callable_bed: DATADIR/exome.bed.gz 
+
+  rtg_vcfeval:
+    reference_sdf: DATADIR/hs37d5.sdf
+    reference_vcf: DATADIR/exome.vcf.gz
+    callable_bed: DATADIR/exome.bed.gz 
+    options: --sample=NA12878
+
+  samtools_mpileup_histogram:
+    reference_fasta: DATADIR/hs37d5.fa
+
+  filestat:
+    files: DATADIR/exome.bed.gz
+
+  chars:
+    reference_data: DATADIR/exome.bed.gz
+    files: DATADIR/exome.bed.gz
+
+  lengths:
+    reference_data: DATADIR/exome.bed.gz
+    files: DATADIR/exome.bed.gz
+  
+  mummer_dotplot:
+    files: DATADIR/chr22.fa
+    reference_fasta: DATADIR/chr22.fa

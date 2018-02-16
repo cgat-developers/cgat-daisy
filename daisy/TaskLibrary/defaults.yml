@@ -1,0 +1,32 @@
+# Yaml file with default values for auto-detection.
+# Note that the order of enttries matters.
+# TODO: write doc
+
+global:
+  reference_fasta_map: &REFERENCE_FASTA_MAP
+    hs37d5:
+      path: DATADIR/hs37d5.fa
+      assembly: GRCh37
+      chr_prefix: false
+
+  regions_file_map: &REGIONS_FILE_MAP
+    auto_cds:
+      hs37d5:
+        DATADIR/gtf2cds_bed_Ensembl-GRCh37.bed.gz
+
+daisy_vcf2reference:
+  reference_fasta_map: *REFERENCE_FASTA_MAP
+  
+bcftools_stats:
+
+  reference_fasta_map: *REFERENCE_FASTA_MAP
+  regions_file_map: *REGIONS_FILE_MAP
+  exons_map: *REGIONS_FILE_MAP
+
+daisy_bam2reference:
+  reference_fasta_map: *REFERENCE_FASTA_MAP
+
+samtools_stats:
+
+  reference_fasta_map: *REFERENCE_FASTA_MAP
+  target_regions_map: *REGIONS_FILE_MAP
