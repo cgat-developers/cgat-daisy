@@ -15,7 +15,7 @@ The script outputs a tab-separated table with three columns:
 """
 
 import sys
-import daisy.Experiment as E
+import CGATCore.Experiment as E
 
 # import tasks to apply in this pipeline
 from daisy.TaskLibrary import map_tool_to_runner, \

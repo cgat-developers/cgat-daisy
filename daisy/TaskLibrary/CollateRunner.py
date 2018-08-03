@@ -1,8 +1,8 @@
 from daisy.TaskLibrary.Runner import Runner, collect_file_meta_information
 from daisy.Toolkit import as_namedtuple
-import daisy.Pipeline as P
-import daisy.Experiment as E
-import daisy.IOTools as IOTools
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
+import CGATCore.IOTools as IOTools
 import os
 import glob
 import re

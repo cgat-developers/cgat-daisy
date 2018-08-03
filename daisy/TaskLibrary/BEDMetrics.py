@@ -4,9 +4,9 @@ import pysam
 from .MetricRunner import MetricRunner
 from .SplitRunner import SplitRunner
 
-import daisy.Pipeline as P
-import daisy.Experiment as E
-import daisy.IOTools as IOTools
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
+import CGATCore.IOTools as IOTools
 
 
 def standardise_bed_files(

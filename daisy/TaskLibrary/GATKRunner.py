@@ -3,9 +3,9 @@ import os
 
 from .ToolRunner import ToolRunner
 from .Runner import resolve_argument
-import daisy.Pipeline as P
-import daisy.Experiment as E
-import daisy.IOTools as IOTools
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
+import CGATCore.IOTools as IOTools
 from .VCFMetrics import VCFPreprocessor
 from .VariantCallers import get_reference
 

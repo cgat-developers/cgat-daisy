@@ -6,9 +6,9 @@ import shutil
 from daisy.Toolkit import parse_region_string
 from .Runner import resolve_argument
 from .ToolRunner import ToolRunner
-import daisy.Pipeline as P
-import daisy.Experiment as E
-import daisy.IOTools as IOTools
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
+import CGATCore.IOTools as IOTools
 from .BAMMetrics import get_reference_for_bam
 from distutils.version import LooseVersion
 

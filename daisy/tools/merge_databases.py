@@ -7,7 +7,7 @@ import copy
 import itertools
 import sqlite3
 
-import daisy.Experiment as E
+import CGATCore.Experiment as E
 
 
 def apply_run_filter(run_id, method,

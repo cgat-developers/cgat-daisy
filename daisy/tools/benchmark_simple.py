@@ -18,8 +18,8 @@ produce the same type of output (e.g. :term:`VCF`).
 import sys
 import ruffus
 import collections
-import daisy.Pipeline as P
-import daisy.Experiment as E
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
 from daisy.Toolkit import arvados_enabled
 from daisy.Library import LibraryContext
 

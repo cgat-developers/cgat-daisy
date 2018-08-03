@@ -18,12 +18,12 @@ import glob
 import collections
 import pandas as pd
 
-import daisy.IOTools as IOTools
-import daisy.Experiment as E
+import CGATCore.IOTools as IOTools
+import CGATCore.Experiment as E
+import CGATCore.Pipeline as P
 from daisy.Storage import upload_result, export_result
 from daisy.TaskLibrary.Runner import EmptyRunner
 from daisy.TaskLibrary.ToolRunner import run_tool_identity
-import daisy.Pipeline as P
 
 # parameters that will no be used to compute combinations
 RESERVED_WORDS = ["ignore"]

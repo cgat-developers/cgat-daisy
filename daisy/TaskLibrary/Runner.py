@@ -6,9 +6,9 @@ import sre_constants
 import collections
 import shutil
 
-import daisy.Experiment as E
-import daisy.Pipeline as P
-import daisy.IOTools as IOTools
+import CGATCore.Experiment as E
+import CGATCore.Pipeline as P
+import CGATCore.IOTools as IOTools
 from daisy.Toolkit import hash
 from daisy.TaskLibrary import get_default_params
 

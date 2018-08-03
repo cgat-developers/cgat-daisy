@@ -96,8 +96,8 @@ import re
 import datetime
 import collections
 
-import daisy.Experiment as E
-import daisy.IOTools as IOTools
+import CGATCore.Experiment as E
+import CGATCore.IOTools as IOTools
 
 
 class Counter(object):

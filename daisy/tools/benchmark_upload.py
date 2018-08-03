@@ -14,8 +14,8 @@ note::
 """
 import sys
 import os
-import daisy.Experiment as E
-import daisy.Pipeline as P
+import CGATCore.Experiment as E
+import CGATCore.Pipeline as P
 
 from daisy.Storage import upload_result
 

@@ -23,13 +23,6 @@ import pandas.io.sql
 import re
 import glob
 
-from daisy.Toolkit import touch, read_data, hash
-import daisy.Experiment as E
-import daisy.Arvados as Arvados
-
-from . import Pipeline as P
-import daisy.IOTools as IOTools
-
 import sqlalchemy
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declarative_base
@@ -41,11 +34,11 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError
 
-try:
-    import arvados
-    HAS_ARVADOS = True
-except ImportError:
-    HAS_ARVADOS = False
+import CGATCore.Pipeline as P
+import CGATCore.IOTools as IOTools
+
+from daisy.Toolkit import touch, read_data, hash
+import CGATCore.Experiment as E
 
 ######################################################
 # Database schema
@@ -119,15 +112,6 @@ class BenchmarkInstance(Base):
     # run = relationship("BenchmarkRun",
     #                    backref='instances',
     #                    order_by=id)
-
-
-class BenchmarkArvadosJob(Base):
-    __tablename__ = "arvados_job"
-
-    id = Column(Integer, primary_key=True)
-    run_id = Column(Integer, ForeignKey('run.id'))
-    job_uuid = Column(String)
-    owner_uuid = Column(String)
 
 
 # todo: add index on tag
@@ -890,21 +874,6 @@ def upload_result(infiles, outfile, *extras):
                schema=None,
                is_sqlite3=is_sqlite3)
 
-    # check if arvados job
-    if Arvados.have_arvados():
-        try:
-            arv_job_info = arvados.current_job()
-        except KeyError:
-            arv_job_info = None
-
-        if arv_job_info is not None:
-            arv_job = BenchmarkArvadosJob(
-                run_id=benchmark_run.id,
-                job_uuid=arv_job_info["uuid"],
-                owner_uuid=arv_job_info["owner_uuid"])
-            session.add(arv_job)
-            session.commit()
-
     benchmark_run.status = "complete"
     session.commit()
 
@@ -963,7 +932,6 @@ def purge_run_id(run_id, url, dry_run=False, schemas=None):
     instance_ids = set(get_instance_ids_for_run_id(run_id, engine))
     E.debug("found {} instances for run_id={}".format(len(instance_ids), run_id))
     non_metric_tables = ['run',
-                         'arvados_job',
                          'instance',
                          'binary_data',
                          'metric_timings',

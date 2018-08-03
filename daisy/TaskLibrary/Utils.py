@@ -6,7 +6,7 @@ Utilities for tasks in the TaskLibrary.
 
 import os
 import pysam
-import daisy.Experiment as E
+import CGATCore.Experiment as E
 
 
 @E.cached_function

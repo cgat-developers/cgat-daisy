@@ -19,10 +19,10 @@ import collections
 import copy
 import itertools
 
-import daisy.Pipeline as P
+import CGATCore.Pipeline as P
 
-import daisy.Experiment as E
-import daisy.IOTools as IOTools
+import CGATCore.Experiment as E
+import CGATCore.IOTools as IOTools
 
 import daisy.Workflow as Workflow
 import daisy.Toolkit as Toolkit

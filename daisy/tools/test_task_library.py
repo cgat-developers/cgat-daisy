@@ -23,9 +23,9 @@ import yaml
 import shutil
 import tempfile
 import re
-import daisy.Experiment as E
-import daisy.Pipeline as P
-import daisy.IOTools as IOTools
+import CGATCore.Experiment as E
+import CGATCore.Pipeline as P
+import CGATCore.IOTools as IOTools
 
 from daisy.Toolkit import arvados_enabled
 

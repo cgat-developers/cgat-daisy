@@ -14,9 +14,9 @@ except ImportError:
     from ruamel import yaml
     from ruamel.yaml import RoundTripLoader
 
-import daisy.IOTools as IOTools
+import CGATCore.IOTools as IOTools
 import daisy.Toolkit
-import daisy.Experiment as E
+import CGATCore.Experiment as E
 
 
 @E.cached_function

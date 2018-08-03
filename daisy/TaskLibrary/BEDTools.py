@@ -3,8 +3,8 @@ import re
 from .CollateRunner import CollateRunner
 from .ToolRunner import ToolRunner
 from .Runner import resolve_argument
-import daisy.Pipeline as P
-import daisy.Experiment as E
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
 
 
 class run_collate_bed_cat(CollateRunner):

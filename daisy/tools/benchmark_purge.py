@@ -6,7 +6,7 @@ run.
 """
 
 import sys
-import daisy.Experiment as E
+import CGATCore.Experiment as E
 import daisy.Storage as Storage
 
 

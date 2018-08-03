@@ -2,8 +2,8 @@ import os
 import re
 
 from .ToolRunner import ToolRunner
-import daisy.Pipeline as P
-import daisy.Experiment as E
+import CGATCore.Pipeline as P
+import CGATCore.Experiment as E
 
 
 class run_tool_daisy_finemap(ToolRunner):
