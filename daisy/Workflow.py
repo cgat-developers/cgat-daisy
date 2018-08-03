@@ -85,6 +85,7 @@ def group_files(config_files, group_regex, group_alias="\\1"):
     rx = re.compile(group_regex)
 
     for key, files in list(config_files.items()):
+
         if isinstance(files, list):
             groups = collections.defaultdict(list)
             unmatched = []
@@ -527,15 +528,21 @@ def add_tools_to_pipeline(pipeline,
     input_group_regex = config["input"].pop("group_regex", None)
     input_group_alias = config["input"].pop("group_alias", "\\1")
 
-    is_test = "is_test" in config
+    ignore = config["setup"].get("ignore", [])
+    ignore.extend(config["input"].get("ignore", []))
+
+    replication = int(config["setup"].pop("replication", 1))
+    if replication > 1:
+        P.get_logger().info("running experiment with {} replications".format(replication))
 
     # update selected fields for testing purposes
+    is_test = "is_test" in config
     if "test" in config["input"]:
         config["input"].update(config["input"]["test"])
         del config["input"]["test"]
 
+    # build input/tool combinations, optionally grouping them
     config_files = expand_globs(config["input"], is_test=is_test)
-
     if input_group_regex:
         config_files = group_files(config_files,
                                    input_group_regex,
@@ -543,9 +550,6 @@ def add_tools_to_pipeline(pipeline,
 
     input_combos = build_combinations(config_files)
     tool_runners = []
-
-    ignore = config["setup"].get("ignore", [])
-    ignore.extend(config["input"].get("ignore", []))
 
     make_unique = check_unique(tool_functions,
                                input_combos=input_combos,
@@ -557,64 +561,68 @@ def add_tools_to_pipeline(pipeline,
 
     for toolf, input_files in itertools.product(tool_functions, input_combos):
 
-        # create a copy of the task function and give it its unique name
-        # by mangling it with the input_files
-        taskf = copy.copy(toolf)
+        for replication_idx in range(replication):
+            # create a copy of the task function and give it its unique name
+            # by mangling it with the input_files
+            taskf = copy.copy(toolf)
 
-        taskf.register_input(input_files,
-                             regex=input_regex,
-                             alias=input_alias,
-                             make_unique=make_unique,
-                             is_test=is_test)
+            if replication > 1:
+                taskf.set_replication_id(replication_idx + 1)
 
-        if "name" in input_files:
-            # create copy of input_files without name, do
-            # not modify original as different tools require
-            # the 'name'
-            input_files = dict([(x, y) for x, y in list(input_files.items())
-                                if x != "name"])
+            taskf.register_input(input_files,
+                                 regex=input_regex,
+                                 alias=input_alias,
+                                 make_unique=make_unique,
+                                 is_test=is_test)
 
-        result_dir = os.path.join(taskf.__name__ + ".dir")
+            if "name" in input_files:
+                # create copy of input_files without name, do
+                # not modify original as different tools require
+                # the 'name'
+                input_files = dict([(x, y) for x, y in list(input_files.items())
+                                    if x != "name"])
 
-        found = False
+            result_dir = os.path.join(taskf.__name__ + ".dir")
 
-        for i in IOTools.val2list(ignore):
-            if i in result_dir:
-                P.get_logger().warn(
-                    "the following task will be ignored: "
-                    "{} matching {}".format(
-                        result_dir, i))
-                found = True
-        if found:
-            continue
+            found = False
 
-        output, multiple_outputs, flexible_outputs, _suffix = \
-            build_output(taskf, result_dir)
-        if suffix is None:
-            suffix = _suffix
-        elif suffix != _suffix:
-            raise ValueError(
-                "tools produce output files of different type, "
-                "got {}, expected {}".format(_suffix, suffix))
+            for i in IOTools.val2list(ignore):
+                if i in result_dir:
+                    P.get_logger().warn(
+                        "the following task will be ignored: "
+                        "{} matching {}".format(
+                            result_dir, i))
+                    found = True
+            if found:
+                continue
 
-        tool_task = pipeline.merge(
-            task_func=taskf,
-            input=list(input_files.values()),
-            output=output,
-            **kwargs).mkdir(result_dir)
+            output, multiple_outputs, flexible_outputs, _suffix = \
+                build_output(taskf, result_dir)
+            if suffix is None:
+                suffix = _suffix
+            elif suffix != _suffix:
+                raise ValueError(
+                    "tools produce output files of different type, "
+                    "got {}, expected {}".format(_suffix, suffix))
 
-        # if there are multilpe output files, split the task so that
-        # each output file will be processed separately further down the
-        # pipeline.
-        if multiple_outputs:
-            f = EmptyRunner()
-            f.__name__ = taskf.__name__ + "_split"
-            tool_task = pipeline.split(
-                task_func=f,
-                input=tool_task,
-                output=output)
+            tool_task = pipeline.merge(
+                task_func=taskf,
+                input=list(input_files.values()),
+                output=output,
+                **kwargs).mkdir(result_dir)
 
-        tool_runners.append(tool_task)
+            # if there are multilpe output files, split the task so that
+            # each output file will be processed separately further down the
+            # pipeline.
+            if multiple_outputs:
+                f = EmptyRunner()
+                f.__name__ = taskf.__name__ + "_split"
+                tool_task = pipeline.split(
+                    task_func=f,
+                    input=tool_task,
+                    output=output)
+
+            tool_runners.append(tool_task)
 
     # convenience target
     f = EmptyRunner()
@@ -897,6 +905,7 @@ def add_metrics_to_pipeline(pipeline,
         found = False
         # Note that ignore will only work on the static parts of a task
         # as result_dir contains a pattern that will be filled in at runtime,
+        # e.g. \1/echidna_test.dir/echidna_test.tsv.
         for i in ignore:
             if i in result_dir:
                 P.get_logger().warn(

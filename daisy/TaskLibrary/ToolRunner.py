@@ -52,7 +52,13 @@ class run_tool_identity(ToolRunner):
     # override this in configuration file if not a .bam file.
     output = "result.bam"
 
+    # if given, a glob expression will be added to the filename and
+    # all files matching will be linked in as well.
     add_glob = None
+
+    # if given, a suffix is chopped off from the filename before
+    # adding a glob expression
+    chop_suffix = None
 
     file = None
 
@@ -91,7 +97,12 @@ class run_tool_identity(ToolRunner):
             link_f(source_fn, outfile)
 
         if self.add_glob:
+            if self.chop_suffix:
+                source_fn = IOTools.snip(source_fn, self.chop_suffix)
+                outfile = IOTools.snip(outfile, self.chop_suffix)
+
             prefix = len(os.path.basename(source_fn))
+
             for fn in glob.glob(source_fn + self.add_glob):
                 target = outfile + os.path.basename(fn)[prefix:]
                 if not os.path.exists(target):

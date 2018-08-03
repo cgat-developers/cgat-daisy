@@ -47,7 +47,7 @@ class CollateRunner(Runner):
                     os.path.join(os.path.dirname(basefile), "benchmark.info")))
             return
 
-        params = self.build_params()
+        params = self.build_params(output_file=outfile)
         benchmark = self.run(infiles, outfile, as_namedtuple(params))
 
         self.save_benchmark(

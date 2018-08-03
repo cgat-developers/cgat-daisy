@@ -94,6 +94,7 @@ class BenchmarkInstance(Base):
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey('run.id'))
+    replication_id = Column(Integer)
     completed = Column(DateTime)
     input = Column(String)
     input_alias = Column(String)
@@ -230,8 +231,15 @@ def save_table(table, engine, tablename, schema=None,
     # AttributeError: 'Engine' object has no attribute 'rollback'
     if is_sqlite3:
         _engine = engine.raw_connection()
+        # In pandas >= 0.23 and using sqlite as a backend, the
+        # pandas.DataFrame.to_sql command fails with "OperationalError:
+        # (sqlite3.OperationalError) too many SQL variables". The reason is a
+        # fixed limit in sqlite, SQLITE_MAX_VARIABLE_NUMBER, which is by
+        # default set to 999.
+        sql_chunk_size = 999 // (len(table.columns) + 1)
     else:
         _engine = engine
+        sql_chunk_size = None
 
     # lower case all table names. Otherwise issues with psql
     # mixed case access
@@ -251,7 +259,8 @@ def save_table(table, engine, tablename, schema=None,
                          schema=schema,
                          if_exists="fail",
                          index=False,
-                         dtype=dtypes)
+                         dtype=dtypes,
+                         chunksize=sql_chunk_size)
             create_index = True
         except ValueError:
             table.to_sql(tablename,
@@ -259,7 +268,8 @@ def save_table(table, engine, tablename, schema=None,
                          schema=schema,
                          if_exists="append",
                          index=False,
-                         dtype=dtypes)
+                         dtype=dtypes,
+                         chunksize=sql_chunk_size)
 
     elif engine.has_table(tablename, schema):
 
@@ -295,7 +305,8 @@ def save_table(table, engine, tablename, schema=None,
                      schema=schema,
                      if_exists="append",
                      index=False,
-                     dtype=dtypes)
+                     dtype=dtypes,
+                     chunksize=sql_chunk_size)
     else:
         # table is new, create index
         table.to_sql(tablename,
@@ -303,7 +314,8 @@ def save_table(table, engine, tablename, schema=None,
                      schema=schema,
                      if_exists="fail",
                      index=False,
-                     dtype=dtypes)
+                     dtype=dtypes,
+                     chunksize=sql_chunk_size)
         create_index = True
 
     if create_index:
@@ -357,6 +369,8 @@ class TableCache():
         self.uploaded_sizes = collections.defaultdict(int)
         self.dtypes = {}
         self.logger = P.get_logger()
+        self.indices = {}
+        self.have_created_indices = False
 
     def flush_table(self, tablename):
 
@@ -383,6 +397,9 @@ class TableCache():
         self.total_size = 0
         self.cache = {}
         self.sizes = collections.defaultdict(int)
+
+    def add_indices(self, indices):
+        self.indices.update(indices)
 
     def add_table(self, table, tablename, dtypes=None):
 
@@ -424,6 +441,18 @@ class TableCache():
 
     def close(self):
         self.flush_all()
+
+        if not self.have_created_indices:
+            for index_name, info in self.indices.items():
+                table_name, fields = info
+                self.logger.debug("creating index {} on {} and fields {}".format(
+                    index_name, table_name, fields))
+                try:
+                    self.engine.execute("CREATE INDEX {} ON {} ({})".format(
+                        index_name, table_name, fields))
+                except sqlalchemy.exc.OperationalError as ex:
+                    self.logger.warn("could not create index: {}".format(str(ex)))
+            self.have_created_indices = True
 
     def __del__(self):
         self.close()
@@ -486,8 +515,7 @@ def transform_table_before_upload(tablename, table, instance, meta_data, table_c
             rows = []
             if not groupby_columns:
                 matrix = table.as_matrix(take_columns)
-                rows.append(["",
-                             ",".join(map(str, table[row_index_column])),
+                rows.append([",".join(map(str, table[row_index_column])),
                              ",".join(map(str, take_columns)),
                              str(matrix.dtype),
                              matrix.tostring()])
@@ -711,6 +739,7 @@ def upload_result(infiles, outfile, *extras):
         try:
             instance = BenchmarkInstance(
                 run_id=benchmark_run.id,
+                replication_id=meta_data.get("tool_replication_id", 1),
                 completed=datetime.datetime.fromtimestamp(
                     os.path.getmtime(infile)),
                 input=",".join(tool_input_files),
@@ -833,7 +862,7 @@ def upload_result(infiles, outfile, *extras):
                 "table binary_data".format(len(files), metric_dir))
             table = []
             for fn in files:
-                with IOTools.open_file(fn, "rb") as inf:
+                with IOTools.open_file(fn, "rb", encoding=None) as inf:
                     data_row = BenchmarkBinaryData(
                         instance_id=instance.id,
                         filename=os.path.basename(fn),
@@ -841,6 +870,9 @@ def upload_result(infiles, outfile, *extras):
                         data=inf.read())
                     session.add(data_row)
                 session.commit()
+
+        if meta_data.get("metric_tableindices", None):
+            table_cache.add_indices(meta_data["metric_tableindices"])
 
     table_cache.close()
     touch(outfile)

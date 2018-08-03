@@ -11,7 +11,18 @@ import daisy.IOTools as IOTools
 class MetricRunner(Runner):
 
     action = "metric"
+
+    # a list of tables that this metric will produce.
+    # If not set by child, the tablename will be derived
+    # from the name of the metric.
     tablenames = None
+
+    # a dictionary with index specifications. Each dictionary key is
+    # an index name and each specification is a tuple of the table
+    # name and the fields that the index should be created
+    # on. Multiple fields can be provided as a "," separated string,
+    # such as "variant_id,pos"
+    tableindices = None
 
     def __init__(self, *args, **kwargs):
         Runner.__init__(self, *args, **kwargs)
@@ -185,13 +196,32 @@ class run_metric_daisy_table2stats(MetricRunner):
     name = "daisy_table2stats"
     path = "daisy table2stats"
 
+    # If glob is given, apply to multiple tables that a tool
+    # might have output. The glob expression is appended to the
+    # directory of the input filename.
+    glob = None
+
     def get_version(self):
         return "builtin"
 
     def run(self, infile, outfile, params):
-        return P.run("{params.path} "
-                     "{params.options} "
-                     "-I {infile} "
-                     "--log {outfile}.log "
-                     "2> {outfile}.err "
-                     "> {outfile} ".format(**locals()))
+
+        if params.glob is not None:
+            statement = ("{params.path} "
+                         "{params.options} "
+                         "--input-filename {glob_expression} "
+                         "--log {outfile}.log "
+                         "2> {outfile}.err "
+                         "> {outfile} ".format(
+                             glob_expression=os.path.join(
+                                 os.path.abspath(os.path.dirname(infile)), params.glob),
+                             **locals()))
+        else:
+            statement = ("{params.path} "
+                         "{params.options} "
+                         "--input-filename {infile} "
+                         "--log {outfile}.log "
+                         "2> {outfile}.err "
+                         "> {outfile} ".format(**locals()))
+
+        return P.run(statement)

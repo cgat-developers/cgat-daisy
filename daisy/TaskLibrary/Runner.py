@@ -190,6 +190,7 @@ class Runner(object):
         self._runtime_alias = None
         self._runtime_regex = None
         self._ignore = None
+        self._replication_id = None
 
         # add configuration values
         for key, value in list(kwargs.items()):
@@ -231,7 +232,7 @@ class Runner(object):
 
         # remove quotes and other characters to simplify writing
         # regex expressions
-        option_string = re.sub("[\"']", "", str(option_string))
+        option_string = re.sub("[\"':{}]", " ", str(option_string))
 
         if regex:
             name = re.search(regex, option_string)
@@ -265,6 +266,9 @@ class Runner(object):
                                           regex=self._regex))
         return "_".join(parts)
 
+    def set_replication_id(self, replication_id):
+        self._replication_id = replication_id
+
     def register_input(self,
                        input_files=None,
                        alias=None,
@@ -283,6 +287,9 @@ class Runner(object):
             parts = [self._name]
         else:
             parts = [self.name]
+
+        if self._replication_id:
+            parts.append(str(self._replication_id))
 
         # build a unique name with human readable components
         plain_name = self.get_plain_name()
@@ -404,8 +411,11 @@ class Runner(object):
                         for option, value in list(d["task_specific"][key].items()):
                             d[option] = value
 
-        if "output_files" in d:
-            to_match = d["output_files"]
+        if "output_file" in d or "output_files" in d:
+            if "output_files" in d:
+                to_match = d["output_files"]
+            else:
+                to_match = [d["output_file"]]
             for key, value in list(d.items()):
                 if key + "_regex" in d:
                     try:
@@ -420,6 +430,11 @@ class Runner(object):
                         if r:
                             d[key] = r.expand(value)
                             break
+                    else:
+                        raise ValueError(
+                            "regular expresssion '{}' did not match any parameters in {}".format(
+                                d[key + "_regex"],
+                                ",".join(["'{}'".format(x) for x in to_match])))
         return d
 
     def build_meta_filename(self, outfile, name):
@@ -447,6 +462,11 @@ class Runner(object):
         if "alias" not in d:
             # submit d in order to look for input files.
             d["alias"] = self.get_plain_name(d)
+
+        if self._replication_id:
+            d["replication_id"] = self._replication_id
+        else:
+            d["replication_id"] = 1
 
         filename = self.build_meta_filename(outfile, "benchmark.info")
 
