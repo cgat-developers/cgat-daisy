@@ -274,7 +274,8 @@ class Runner(object):
                        alias=None,
                        regex=None,
                        make_unique=False,
-                       is_test=False):
+                       is_test=False,
+                       replicate_alias=None):
         """notify task of input files.
 
         Given a dictionary mapping slots to input files check that
@@ -289,7 +290,13 @@ class Runner(object):
             parts = [self.name]
 
         if self._replication_id:
-            parts.append(str(self._replication_id))
+            if replicate_alias:
+                if "\\1" not in replicate_alias:
+                    raise ValueError("replicate_alias must contain a '\\1', but is '{}'".format(
+                        replicate_alias))
+                parts.append(re.sub("\\\\1", str(self._replication_id), replicate_alias))
+            else:
+                parts.append(str(self._replication_id))
 
         # build a unique name with human readable components
         plain_name = self.get_plain_name()

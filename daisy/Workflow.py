@@ -525,6 +525,7 @@ def add_tools_to_pipeline(pipeline,
 
     input_regex = config["input"].pop("regex", None)
     input_alias = config["input"].pop("alias", None)
+    replicate_alias = config["input"].pop("replicate_alias", None)
     input_group_regex = config["input"].pop("group_regex", None)
     input_group_alias = config["input"].pop("group_alias", "\\1")
 
@@ -573,7 +574,8 @@ def add_tools_to_pipeline(pipeline,
                                  regex=input_regex,
                                  alias=input_alias,
                                  make_unique=make_unique,
-                                 is_test=is_test)
+                                 is_test=is_test,
+                                 replicate_alias=replicate_alias)
 
             if "name" in input_files:
                 # create copy of input_files without name, do

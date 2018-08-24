@@ -162,6 +162,12 @@ Collection of directives (required)
 
        For more information, see :ref:`exporting`.
 
+    replication
+       (optional)
+
+       If set and larger than 1, each tool will be run multiple times
+       with identical input and parameterization.
+
 .. _input:
 
 input
@@ -285,6 +291,16 @@ directives.
 
         ignore:
    	  - gatk_haplotype_caller_WES_NA12891_remapped_dedup
+
+    replicate_alias
+       (optional)
+
+       When replicates are set, provide a format for a replicate id.
+       The default is to output the replicate number after the tool
+       name, for example: ``tool_1_input.dir``. If set to
+       ``replicate_alias: replicate=\1``, the directory will be called
+       ``tool_replicate=1_input.dir``.
+
 
 .. _tool_task:
 
