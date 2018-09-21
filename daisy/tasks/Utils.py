@@ -1,12 +1,12 @@
 """Utils
 
-Utilities for tasks in the TaskLibrary.
+Utilities for tasks in the tasks.
 
 """
 
 import os
 import pysam
-import CGATCore.Experiment as E
+import cgatcore.experiment as E
 
 
 @E.cached_function

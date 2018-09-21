@@ -6,11 +6,11 @@ import sre_constants
 import collections
 import shutil
 
-import CGATCore.Experiment as E
-import CGATCore.Pipeline as P
-import CGATCore.IOTools as IOTools
-from daisy.Toolkit import hash
-from daisy.TaskLibrary import get_default_params
+import cgatcore.experiment as E
+import cgatcore.pipeline as P
+import cgatcore.iotools as IOTools
+from daisy.toolkit import hash
+from daisy.tasks import get_default_params
 
 
 def resolve_argument(argument, sep=","):

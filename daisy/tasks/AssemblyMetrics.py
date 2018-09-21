@@ -3,9 +3,9 @@ import re
 
 from .Runner import resolve_argument
 from .MetricRunner import MetricRunner
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 class run_metric_last_dotplot(MetricRunner):

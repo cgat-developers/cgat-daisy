@@ -15,10 +15,10 @@ The script outputs a tab-separated table with three columns:
 """
 
 import sys
-import CGATCore.Experiment as E
+import cgatcore.experiment as E
 
 # import tasks to apply in this pipeline
-from daisy.TaskLibrary import map_tool_to_runner, \
+from daisy.tasks import map_tool_to_runner, \
     map_metric_to_runner, \
     map_collate_to_runner, \
     map_split_to_runner

@@ -5,9 +5,9 @@ from .ToolRunner import ToolRunner
 from .CollateRunner import CollateRunner
 from .MetricRunner import MetricRunner
 
-import CGATCore.Pipeline as P
-import CGATCore.IOTools as IOTools
-import CGATCore.Experiment as E
+import cgatcore.pipeline as P
+import cgatcore.iotools as IOTools
+import cgatcore.experiment as E
 
 from .VariantCallers import VariantCaller, get_reference
 from .Runner import resolve_argument

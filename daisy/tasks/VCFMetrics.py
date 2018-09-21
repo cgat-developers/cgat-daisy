@@ -10,13 +10,13 @@ from .Runner import compare_sets, dict_to_labelvalue, is_true, is_set, \
     resolve_argument, get_associated_file
 
 from .MetricRunner import MetricRunner
-from daisy.Toolkit import update_namedtuple, redirect2mounts
-from daisy.TaskLibrary import redirect_defaults2mountpoint
-from daisy.TaskLibrary.Utils import match_sequence_dictionaries
+from daisy.toolkit import update_namedtuple, redirect2mounts
+from daisy.tasks import redirect_defaults2mountpoint
+from daisy.tasks.Utils import match_sequence_dictionaries
 
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 def build_reference_fasta_map(reference_fasta_map_param):

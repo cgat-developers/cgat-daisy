@@ -7,7 +7,7 @@ import copy
 import itertools
 import sqlite3
 
-import CGATCore.Experiment as E
+import cgatcore.experiment as E
 
 
 def apply_run_filter(run_id, method,

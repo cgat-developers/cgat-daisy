@@ -2,7 +2,7 @@ import re
 
 from .Runner import resolve_argument
 from .ToolRunner import ToolRunner
-import CGATCore.Pipeline as P
+import cgatcore.pipeline as P
 
 
 class run_tool_LDSC(ToolRunner):

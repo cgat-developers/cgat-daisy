@@ -4,10 +4,10 @@ import shutil
 import pandas
 from distutils.version import LooseVersion
 import pysam
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
-from daisy.Toolkit import update_namedtuple
-from daisy.TaskLibrary.VCFMetrics import MetricRunnerVCF, restrict_bed
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
+from daisy.toolkit import update_namedtuple
+from daisy.tasks.VCFMetrics import MetricRunnerVCF, restrict_bed
 
 
 class MetricRunnerVCFRTG(MetricRunnerVCF):

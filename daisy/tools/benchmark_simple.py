@@ -18,9 +18,9 @@ produce the same type of output (e.g. :term:`VCF`).
 import sys
 import ruffus
 import collections
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-from daisy.Toolkit import arvados_enabled
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+from daisy.toolkit import arvados_enabled
 from daisy.Library import LibraryContext
 
 from daisy.Workflow import add_tools_to_pipeline, \
@@ -33,7 +33,7 @@ from daisy.Workflow import add_tools_to_pipeline, \
     add_all_task_to_pipeline
 
 # import tasks to apply in this pipeline
-from daisy.TaskLibrary import map_tool_to_runner, \
+from daisy.tasks import map_tool_to_runner, \
     map_metric_to_runner, \
     map_collate_to_runner, \
     map_split_to_runner, \

@@ -1,4 +1,4 @@
-"""Toolkit of a few convenience functions.
+"""toolkit of a few convenience functions.
 
 Needs to be replaced with GenomicsPLC functions.
 """
@@ -12,9 +12,9 @@ import signal
 import collections
 import logging as L
 import re
-import CGATCore.IOTools as IOTools
-import CGATCore.Experiment as E
-import CGATCore.Pipeline as P
+import cgatcore.iotools as IOTools
+import cgatcore.experiment as E
+import cgatcore.pipeline as P
 # import daisy.Arvados as Arvados
 
 

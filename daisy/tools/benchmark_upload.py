@@ -14,10 +14,10 @@ note::
 """
 import sys
 import os
-import CGATCore.Experiment as E
-import CGATCore.Pipeline as P
+import cgatcore.experiment as E
+import cgatcore.pipeline as P
 
-from daisy.Storage import upload_result
+from daisy.storage import upload_result
 
 
 def main(argv):

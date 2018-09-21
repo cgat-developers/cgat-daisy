@@ -3,12 +3,12 @@ import re
 import pysam
 import shutil
 
-from daisy.Toolkit import parse_region_string
+from daisy.toolkit import parse_region_string
 from .Runner import resolve_argument
 from .ToolRunner import ToolRunner
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 from .BAMMetrics import get_reference_for_bam
 from distutils.version import LooseVersion
 

@@ -5,10 +5,10 @@ import shutil
 import pandas
 
 from .CollateRunner import CollateRunner
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
-import daisy.Toolkit as tk
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
+import daisy.toolkit as tk
 
 
 class run_collate_bcftools_merge(CollateRunner):

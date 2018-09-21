@@ -18,12 +18,12 @@ import glob
 import collections
 import pandas as pd
 
-import CGATCore.IOTools as IOTools
-import CGATCore.Experiment as E
-import CGATCore.Pipeline as P
-from daisy.Storage import upload_result, export_result
-from daisy.TaskLibrary.Runner import EmptyRunner
-from daisy.TaskLibrary.ToolRunner import run_tool_identity
+import cgatcore.iotools as IOTools
+import cgatcore.experiment as E
+import cgatcore.pipeline as P
+from daisy.storage import upload_result, export_result
+from daisy.tasks.Runner import EmptyRunner
+from daisy.tasks.ToolRunner import run_tool_identity
 
 # parameters that will no be used to compute combinations
 RESERVED_WORDS = ["ignore"]
@@ -509,7 +509,7 @@ def add_tools_to_pipeline(pipeline,
         The ruffus pipeline that tasks will be added to.
     map_tool_to_runner: dict
         Dictionary mapping tools to functions in the
-        :ref:`TaskLibrary`.
+        :ref:`tasks`.
     config: dict
         Configuration dictionary.
     input_files: list

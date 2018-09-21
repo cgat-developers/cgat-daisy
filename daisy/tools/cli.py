@@ -6,7 +6,7 @@ import inspect
 import re
 import importlib
 
-from CGATCore.IOTools import snip
+from cgatcore.iotools import snip
 
 IGNORE = ["__init__.py", "cli.py"]
 SYNONYMS = {"benchmark-simple": ["run"]}

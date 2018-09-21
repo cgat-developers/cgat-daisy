@@ -7,9 +7,9 @@ import pandas
 from .Runner import resolve_argument, is_true
 from .ToolRunner import ToolRunner
 from .VCFMetrics import VCFPreprocessor, restrict_bed, create_genome_bed
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 class ToolRunnerVCF(ToolRunner, VCFPreprocessor):

@@ -14,9 +14,9 @@ except ImportError:
     from ruamel import yaml
     from ruamel.yaml import RoundTripLoader
 
-import CGATCore.IOTools as IOTools
-import daisy.Toolkit
-import CGATCore.Experiment as E
+import cgatcore.iotools as IOTools
+import daisy.toolkit
+import cgatcore.experiment as E
 
 
 @E.cached_function
@@ -41,7 +41,7 @@ def redirect_defaults2mountpoint(mountpoint):
     arvados is present.
     """
     params = get_default_params()
-    mountpoint = daisy.Toolkit.redirect2mounts(params,
+    mountpoint = daisy.toolkit.redirect2mounts(params,
                                                mountpoint,
                                                substitute_only=True)
     return mountpoint
@@ -85,7 +85,7 @@ for idx, root in enumerate(module_dirs):
         module_name = IOTools.snip(os.path.basename(module))
         if idx == 0:
             modules.append(importlib.import_module(
-                "daisy.TaskLibrary.{}".format(module_name)))
+                "daisy.tasks.{}".format(module_name)))
         else:
             spec = importlib.util.spec_from_file_location(
                 "daisy.UserLibrary.{}".format(module_name),

@@ -3,9 +3,9 @@ import os
 
 from .ToolRunner import ToolRunner
 from .Runner import resolve_argument
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 from .VCFMetrics import VCFPreprocessor
 from .VariantCallers import get_reference
 

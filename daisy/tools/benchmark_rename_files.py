@@ -19,16 +19,16 @@ import collections
 import copy
 import itertools
 
-import CGATCore.Pipeline as P
+import cgatcore.pipeline as P
 
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 import daisy.Workflow as Workflow
-import daisy.Toolkit as Toolkit
+import daisy.toolkit as Toolkit
 
 # import tasks to apply in this pipeline
-from daisy.TaskLibrary import map_tool_to_runner, \
+from daisy.tasks import map_tool_to_runner, \
     map_metric_to_runner, \
     map_collate_to_runner
 
@@ -58,7 +58,7 @@ def main(argv=sys.argv):
 
     for old_info in glob.glob("*.dir/tool.info"):
         old_dir, old_file = os.path.split(old_info)
-        old_info = Toolkit.read_data(old_info)
+        old_info = toolkit.read_data(old_info)
         old_data.append((old_dir, old_info))
 
     tool_functions = Workflow.build_tool_functions(map_tool_to_runner, config)

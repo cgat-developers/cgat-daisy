@@ -1,9 +1,9 @@
 import os
 
-from daisy.TaskLibrary.Runner import Runner, collect_file_meta_information
-from daisy.Toolkit import as_namedtuple
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
+from daisy.tasks.Runner import Runner, collect_file_meta_information
+from daisy.toolkit import as_namedtuple
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
 
 
 class SplitRunner(Runner):

@@ -96,8 +96,8 @@ import re
 import datetime
 import collections
 
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 class Counter(object):

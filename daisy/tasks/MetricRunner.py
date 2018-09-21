@@ -1,11 +1,11 @@
 import os
 import re
 
-from daisy.TaskLibrary.Runner import Runner
-from daisy.Toolkit import as_namedtuple
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+from daisy.tasks.Runner import Runner
+from daisy.toolkit import as_namedtuple
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 class MetricRunner(Runner):

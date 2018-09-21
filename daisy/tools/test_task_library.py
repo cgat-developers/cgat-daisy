@@ -23,14 +23,14 @@ import yaml
 import shutil
 import tempfile
 import re
-import CGATCore.Experiment as E
-import CGATCore.Pipeline as P
-import CGATCore.IOTools as IOTools
+import cgatcore.experiment as E
+import cgatcore.pipeline as P
+import cgatcore.iotools as IOTools
 
-from daisy.Toolkit import arvados_enabled
+from daisy.toolkit import arvados_enabled
 
 # import tasks to apply in this pipeline
-from daisy.TaskLibrary import map_tool_to_runner, \
+from daisy.tasks import map_tool_to_runner, \
     map_metric_to_runner, \
     map_collate_to_runner, \
     map_split_to_runner, \
@@ -209,7 +209,7 @@ def main(argv=None):
     parser.add_option(
         "--library-directory", dest="library_directory",
         action="append",
-        help="directory TaskLibrary functions. Will be added to the built-in "
+        help="directory tasks functions. Will be added to the built-in "
         "and the one specified in DAISY_TASKLIBRARY environment variable "
         "[%default]")
 
@@ -239,7 +239,7 @@ def main(argv=None):
 
     # load the built-in tests
     filenames = [os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                              "TaskLibrary", "test_task_library.yml")]
+                              "tasks", "test_task_library.yml")]
     if "DAISY_TASKLIBRARY" in os.environ:
         filenames.append(os.path.join(os.environ["DAISY_TASKLIBRARY"],
                                       "test_task_library.yml"))

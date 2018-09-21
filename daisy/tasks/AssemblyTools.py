@@ -2,8 +2,8 @@ import os
 import re
 
 from .ToolRunner import ToolRunner
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
 
 
 class run_tool_canu(ToolRunner):

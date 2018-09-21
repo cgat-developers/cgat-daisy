@@ -9,9 +9,9 @@ from .ToolRunner import ToolRunner
 from .CollateRunner import CollateRunner
 from .Runner import resolve_argument
 from .BAMMetrics import BAMPreprocessor
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 def sra_peek(sra, outdir=None):

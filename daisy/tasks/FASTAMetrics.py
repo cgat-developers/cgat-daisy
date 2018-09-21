@@ -3,9 +3,9 @@ import pysam
 
 from .MetricRunner import MetricRunner
 
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 
 
 class run_metric_daisy_fasta2stats(MetricRunner):

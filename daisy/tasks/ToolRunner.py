@@ -4,11 +4,11 @@ import shutil
 import re
 
 from .Runner import Runner
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
-from daisy.Toolkit import as_namedtuple
-from CGATCore.Pipeline.Execution import file_is_mounted, get_mounted_location
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
+from daisy.toolkit import as_namedtuple
+from cgatcore.pipeline.Execution import file_is_mounted, get_mounted_location
 
 
 class ToolRunner(Runner):

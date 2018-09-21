@@ -4,11 +4,11 @@ import pysam
 
 from .MetricRunner import MetricRunner
 from .Runner import resolve_argument, is_true, get_associated_file
-import CGATCore.Pipeline as P
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
 from .VCFMetrics import Preprocessor, build_reference_fasta_map
-from daisy.TaskLibrary.Utils import match_sequence_dictionaries
+from daisy.tasks.Utils import match_sequence_dictionaries
 
 
 def get_reference_for_bam(bamfile, fastafiles):
