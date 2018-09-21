@@ -64,15 +64,15 @@ Operating System :: MacOS
 
 setup(
     # package information
-    name='CGAT',
+    name='daisy',
     version=daisy_version,
-    description='CGAT : the Computational Genomics Analysis Toolkit',
+    description='daisy : data',
     author='Andreas Heger',
     author_email='andreas.heger@gmail.com',
     license="MIT",
     platforms=["any"],
     keywords="computational genomics",
-    long_description='CGAT : the Computational Genomics Analysis Toolkit',
+    long_description='daisy : data ',
     classifiers=[_f for _f in classifiers.split("\n") if _f],
     url="http://www.cgat.org/cgat/Tools/",
     # package contents
