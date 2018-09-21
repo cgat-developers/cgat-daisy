@@ -24,7 +24,7 @@ import cgatcore.pipeline as P
 import cgatcore.experiment as E
 import cgatcore.iotools as IOTools
 
-import daisy.Workflow as Workflow
+import daisy.workflow as Workflow
 import daisy.toolkit as Toolkit
 
 # import tasks to apply in this pipeline
@@ -61,10 +61,10 @@ def main(argv=sys.argv):
         old_info = toolkit.read_data(old_info)
         old_data.append((old_dir, old_info))
 
-    tool_functions = Workflow.build_tool_functions(map_tool_to_runner, config)
+    tool_functions = workflow.build_tool_functions(map_tool_to_runner, config)
 
-    config_files = Workflow.expand_globs(config["input"])
-    input_combos = Workflow.build_combinations(config_files)
+    config_files = workflow.expand_globs(config["input"])
+    input_combos = workflow.build_combinations(config_files)
 
     map_property_to_dir = collections.defaultdict(list)
 

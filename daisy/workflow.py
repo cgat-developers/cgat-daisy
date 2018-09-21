@@ -317,7 +317,7 @@ def build_combinations(config):
     [{'option2': 'valueA', 'option1': 'value1'}, {'option2': 'valueA', 'option1': 'value2'}]
     >>> build_combinations({'option1': ["value1", "value2"], 'option2': ["valueA", "valueB"]})
     [{'option2': 'valueA', 'option1': 'value1'}, {'option2': 'valueA', 'option1': 'value2'}, {'option2': 'valueB', 'option1': 'value1'}, {'option2': 'valueB', 'option1': 'value2'}]  # nopep8
-    >>> benchmark.Workflow.build_combinations({'option1': [{"value1": [1,2,3]}, {"value2": [4,5,6]}]})
+    >>> benchmark.workflow.build_combinations({'option1': [{"value1": [1,2,3]}, {"value2": [4,5,6]}]})
     [{'option1': {'value1': [1, 2, 3]}}, {'option1': {'value2': [4, 5, 6]}}]
 
     Arg:

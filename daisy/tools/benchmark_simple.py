@@ -21,9 +21,9 @@ import collections
 import cgatcore.pipeline as P
 import cgatcore.experiment as E
 from daisy.toolkit import arvados_enabled
-from daisy.Library import LibraryContext
+from daisy.library import LibraryContext
 
-from daisy.Workflow import add_tools_to_pipeline, \
+from daisy.workflow import add_tools_to_pipeline, \
     add_metrics_to_pipeline, \
     add_external_data_to_pipeline, \
     add_collations_to_pipeline, \

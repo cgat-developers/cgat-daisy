@@ -10,9 +10,9 @@ import os
 import glob
 import re
 
-import CGATCore.Experiment as E
-import CGATCore.IOTools as IOTools
-import CGATCore.Pipeline as P
+import cgatcore.experiment as E
+import cgatcore.iotools as IOTools
+import cgatcore.pipeline as P
 # import CGATCore.Arvados as Arvados
 
 try:

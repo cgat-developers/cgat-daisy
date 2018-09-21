@@ -8,7 +8,7 @@ import cgatcore.pipeline as P
 import cgatcore.experiment as E
 import cgatcore.iotools as IOTools
 from daisy.toolkit import as_namedtuple
-from cgatcore.pipeline.Execution import file_is_mounted, get_mounted_location
+from cgatcore.pipeline.execution import file_is_mounted, get_mounted_location
 
 
 class ToolRunner(Runner):

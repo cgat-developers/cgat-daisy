@@ -34,11 +34,11 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError
 
-import CGATCore.Pipeline as P
-import CGATCore.IOTools as IOTools
+import cgatcore.pipeline as P
+import cgatcore.iotools as IOTools
 
-from daisy.Toolkit import touch, read_data, hash
-import CGATCore.Experiment as E
+from daisy.toolkit import touch, read_data, hash
+import cgatcore.experiment as E
 
 ######################################################
 # Database schema
