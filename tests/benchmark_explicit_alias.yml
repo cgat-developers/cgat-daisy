@@ -1,0 +1,38 @@
+title: >-
+  Test - basic test
+
+description: >-
+  Testing a simple workflow of tool followed by metrics.
+
+tags:
+  Test
+
+database:
+  url: sqlite:///./csvdb
+
+setup:
+
+  tools:
+    - modify
+    - revert
+
+  metrics:
+    - chars
+    - lengths
+
+input:
+
+  data: data1.txt
+
+modify:
+  options: alias=with_alias;
+
+revert:
+  options:
+
+chars:
+  options: alias=with_alias;
+  reference_data: data2.txt
+
+lengths:
+  reference_data: data2.txt
