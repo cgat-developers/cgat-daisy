@@ -58,6 +58,7 @@ class TestBenchmarkSimpleBasicWorkflow(BaseTest):
 
     def test_workflow_make(self):
 
+        logfile = os.path.join(self.work_dir, "output.log")
         statement = (
             "daisy "
             "benchmark-simple "
@@ -67,15 +68,21 @@ class TestBenchmarkSimpleBasicWorkflow(BaseTest):
             "--work-dir={} "
             "--local "
             "make all".format(
-                os.path.join(self.work_dir, "output.log"),
+                logfile,
                 os.path.join(os.path.dirname(__file__), self.filename),
                 self.work_dir))
 
         p = E.run(statement, return_popen=True)
         stdout, stderr = p.communicate()
 
+        if os.path.exists(logfile):
+            with open(logfile) as inf:
+                logdata = inf.read()
+        else:
+            logdata = "no log data available at {}".format(logfile)
+
         self.assertEqual(
-            p.returncode, 0, msg="stderr = {}".format(stderr))
+            p.returncode, 0, msg="stderr = {}, log={}".format(stderr, logdata))
 
         self.check_files_present(
             itertools.product(self.expected_tools, self.expected_metrics), aliases=self.aliases)
