@@ -11,3 +11,5 @@ dependencies:
 - sqlalchemy
 - ruffus
 - ruamel_yaml
+- pytest
+- pysam

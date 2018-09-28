@@ -20,7 +20,6 @@ set -o pipefail
 # http://aplawrence.com/Basics/trapping_errors.html
 # https://stelfox.net/blog/2013/11/fail-fast-in-bash-scripts/
 
-set -e -x
 set -o errtrace
 
 SCRIPT_NAME="$0"
@@ -453,108 +452,17 @@ conda_test() {
 
     setup_env_vars
 
-    # setup environment and run tests
-    if [[ $TRAVIS_INSTALL ]] || [[ $JENKINS_INSTALL ]] ; then
+    # enable Conda env
+    log "activating CGAT conda environment"
+    source $CONDA_INSTALL_DIR/bin/activate $CONDA_INSTALL_ENV
 
-	# enable Conda env
-	log "activating CGAT conda environment"
-	source $CONDA_INSTALL_DIR/bin/activate $CONDA_INSTALL_ENV
+    # show conda environment used for testing
+    conda env export
 
-	# show conda environment used for testing
-	conda env export
+    cd $CGAT_HOME/cgat-bench
 
-	# install cgat-core
-	install_cgat_core
-
-	# python preparation
-	log "install CGAT bench into conda environment"
-	cd $CGAT_HOME
-
-	# Python preparation
-	sed -i'' -e 's/CGATScripts/scripts/g' setup.py
-	sed -i'' -e '/REPO_REQUIREMENT/,/pass/d' setup.py
-	sed -i'' -e '/# dependencies/,/dependency_links=dependency_links,/d' setup.py
-	python setup.py develop
-
-	log "starting tests"
-	# run nosetests
-	if [[ $TEST_ALL ]] ; then
-	    log "test_style.py" && nosetests -v tests/test_style.py && \
-		log "test_import.py" && nosetests -v tests/test_import.py && \
-		echo -e "restrict:\n    manifest:\n" > tests/_test_commandline.yaml && \
-		log "test_commandline" && nosetests -v tests/test_commandline.py && \
-		log "test_scripts" && nosetests -v tests/test_scripts.py ;
-	elif [[ $TEST_IMPORT ]] ; then
-	    nosetests -v tests/test_import.py ;
-	elif [[ $TEST_STYLE ]] ; then
-	    nosetests -v tests/test_style.py ;
-	elif [[ $TEST_CMDLINE ]] ; then
-	    echo -e "restrict:\n    manifest:\n" > tests/_test_commandline.yaml
-	    nosetests -v tests/test_commandline.py ;
-	elif [[ $TEST_PRODUCTION_SCRIPTS  ]] ; then
-	    echo -e "restrict:\n    manifest:\n" > tests/_test_scripts.yaml
-	    nosetests -v tests/test_scripts.py ;
-	else
-	    nosetests -v tests/test_scripts.py ;
-	fi
-
-    else
-
-	if [[ $CONDA_INSTALL_TYPE_PIPELINES ]] ; then
-	    # prepare environment
-	    source $CONDA_INSTALL_DIR/bin/activate $CONDA_INSTALL_ENV
-
-	    # make sure you are in the CGAT_HOME/cgat-flow folder
-	    cd $CGAT_HOME/cgat-flow
-
-	    # Python preparation
-	    sed -i'' -e 's/CGATScripts/scripts/g' setup.py
-	    sed -i'' -e '/REPO_REQUIREMENT/,/pass/d' setup.py
-	    sed -i'' -e '/# dependencies/,/dependency_links=dependency_links,/d' setup.py
-	    python setup.py develop
-	    OUTPUT_DIR=`pwd`
-
-	    # run tests
-	    /usr/bin/time -o test_import.time -v nosetests -v tests/test_import.py >& test_import.out
-	    if [[ $? -eq 0 ]] ; then
-		echo
-		echo " test_import.py passed successfully! "
-		echo
-	    else
-		echo
-		echo " test_import.py failed. Please see $OUTPUT_DIR/test_import.out file for detailed output. "
-		echo
-
-		print_env_vars
-
-	    fi
-
-	    /usr/bin/time -o test_scripts.time -v nosetests -v tests/test_scripts.py >& test_scripts.out
-	    if [[ $? -eq 0 ]] ; then
-		echo
-		echo " test_scripts.py passed successfully! "
-		echo
-	    else
-		echo
-		echo " test_scripts.py failed. Please see $OUTPUT_DIR/test_scripts.out file for detailed output. "
-		echo
-
-		print_env_vars
-
-	    fi
-	    
-	else
-	    echo
-	    echo " There was an error running the tests. "
-	    echo " Execution aborted. "
-	    echo
-
-	    print_env_vars
-
-	    exit 1
-	fi
-
-    fi # if travis or jenkins
+    log "starting tests"
+    pytest tests
 
 } # conda_test
 
