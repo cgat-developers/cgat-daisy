@@ -379,7 +379,12 @@ conda_install() {
 	    echo " $ conda deactivate"
 	    echo
 	fi # if-$ conda create
-
+	
+	# smoke-test, check if daisy-command is available
+	log 'checking if daisy is on the path'
+	which daisy
+	log 'checking if daisy is executable'
+	daisy
     fi # if travis install
 
 } # conda install
