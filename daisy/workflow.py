@@ -449,8 +449,9 @@ def build_tool_functions(map_tool_to_runner, config):
 
     try:
         tools = config["setup"]["tools"]
-    except (KeyError, TypeError):
-        raise KeyError("configuration file requires a 'setup:tools' section")
+    except (KeyError, TypeError) as ex:
+        raise KeyError("configuration file requires a 'setup:tools' section: {} '{}'".format(
+            ex, config))
 
     # create all vs all combinations for tools, tool options
     # and input files
