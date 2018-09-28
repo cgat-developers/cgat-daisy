@@ -34,4 +34,3 @@ before_script:
 
 script: 
   - travis_wait 30 ./install-CGAT-tools.sh --travis
-

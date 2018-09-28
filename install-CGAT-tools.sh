@@ -462,7 +462,7 @@ conda_test() {
     # show conda environment used for testing
     conda env export
 
-    cd $CGAT_HOME/cgat-bench
+    cd $CGAT_HOME
 
     log "starting tests"
     pytest tests
