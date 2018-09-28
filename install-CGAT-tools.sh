@@ -394,6 +394,7 @@ install_cgat_core() {
     cd $CGAT_HOME
 
     if [[ $CODE_DOWNLOAD_TYPE -eq 0 ]] ; then
+	conda uninstall -y cgatcore
 	# get the latest version from Git Hub in zip format
 	curl -LOk https://github.com/cgat-developers/cgat-core/archive/$CORE_BRANCH.zip
 	unzip $CORE_BRANCH.zip
@@ -405,13 +406,15 @@ install_cgat_core() {
 	    mv cgat-core-$CORE_BRANCH/ cgat-core/
 	fi
     elif [[ $CODE_DOWNLOAD_TYPE -eq 1 ]] ; then
+	conda uninstall -y cgatcore
 	# get latest version from Git Hub with git clone
 	git clone --branch=$CORE_BRANCH https://github.com/cgat-developers/cgat-core.git
     elif [[ $CODE_DOWNLOAD_TYPE -eq 2 ]] ; then
+	conda uninstall -y cgatcore
 	# get latest version from Git Hub with git clone
 	git clone --branch=$CORE_BRANCH git@github.com:cgat-developers/cgat-core.git
     else
-	report_error " Unknown download type for CGAT core... "
+	log "using latest conda version for cgatcore"
     fi
 
     cd cgat-core/
