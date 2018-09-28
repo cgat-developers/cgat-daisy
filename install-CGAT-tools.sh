@@ -85,7 +85,7 @@ detect_cgat_installation() {
 
 
 # configure environment variables 
-# set: CGAT_HOME, CONDA_INSTALL_DIR, CONDA_INSTALL_TYPE_PIPELINES
+# set: CGAT_HOME, CONDA_INSTALL_DIR, CONDA_INSTALL_TYPE_CORE
 get_cgat_env() {
 
     if [[ $TRAVIS_INSTALL ]] ; then
@@ -459,7 +459,7 @@ conda_test() {
 
     log "starting conda_test"
 
-    # get environment variables: CGAT_HOME, CONDA_INSTALL_DIR, CONDA_INSTALL_TYPE_PIPELINES
+    # get environment variables: CGAT_HOME, CONDA_INSTALL_DIR, CONDA_INSTALL_TYPE_CORE
     get_cgat_env
 
     setup_env_vars
@@ -482,7 +482,7 @@ conda_test() {
 # update conda installation
 conda_update() {
 
-    # get environment variables: CGAT_HOME, CONDA_INSTALL_DIR, CONDA_INSTALL_TYPE_PIPELINES
+    # get environment variables: CGAT_HOME, CONDA_INSTALL_DIR, CONDA_INSTALL_TYPE_CORE
     get_cgat_env
 
     source $CONDA_INSTALL_DIR/bin/activate $CONDA_INSTALL_ENV
@@ -573,7 +573,7 @@ test_git_ssh() {
 test_mix_branch_release() {
     # don't mix branch and release options together
     if [[ $RELEASE ]] ; then
-	if [[ "$PIPELINES_BRANCH" != "master" ]] || [[ $APPS_BRANCH != "master" ]] ; then
+	if [[ "$INSTALL_BRANCH" != "master" ]] || [[ $CORE_BRANCH != "master" ]] ; then
             echo
             echo " You cannot mix git branches and releases for the installation."
             echo
@@ -735,8 +735,7 @@ INSTALL_BRANCH="master"
 # which github branch to use for cgat-core (default: master)
 CORE_BRANCH="master"
 # type of installation
-CONDA_INSTALL_TYPE_PIPELINES=
-CONDA_INSTALL_TYPE_APPS=
+CONDA_INSTALL_TYPE_BENCH=
 CONDA_INSTALL_TYPE_CORE=
 # rename conda environment
 CONDA_INSTALL_ENV=
@@ -823,14 +822,8 @@ do
 	    shift 2
 	    ;;
 
-	--pipelines-branch)
-	    PIPELINES_BRANCH="$2"
-	    test_mix_branch_release
-	    shift 2
-	    ;;
-
-	--scripts-branch)
-	    APPS_BRANCH="$2"
+	--bench-branch)
+	    BENCH_BRANCH="$2"
 	    test_mix_branch_release
 	    shift 2
 	    ;;
@@ -855,8 +848,8 @@ do
 	    RELEASE="$2"
 	    test_mix_branch_release
 	    test_release
-	    PIPELINES_BRANCH="$2"
-	    APPS_BRANCH="$2"
+	    CORE_BRANCH="$2"
+	    BENCH_BRANCH="$2"
 	    shift 2
 	    ;;
 
