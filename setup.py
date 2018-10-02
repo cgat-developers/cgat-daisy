@@ -31,9 +31,9 @@ Operating System :: MacOS
 
 setup(
     # package information
-    name='daisy',
+    name='cgat-daisy',
     version=daisy_version,
-    description='daisy : data isomething system',
+    description='daisy : data i-something system',
     author='Andreas Heger',
     author_email='andreas.heger@gmail.com',
     license="MIT",
@@ -46,8 +46,7 @@ setup(
     package_dir=daisy_package_dirs,
     include_package_data=True,
     entry_points={
-        'console_scripts': ['daisy = daisy.tools.cli:main',
-                            'cgat-bench = daisy.tools.cli:main']
+        'console_scripts': ['daisy = daisy.tools.cli:main'],
     },
     zip_safe=False,
     test_suite="tests",

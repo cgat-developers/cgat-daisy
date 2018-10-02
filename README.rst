@@ -1,17 +1,16 @@
-.. image:: https://travis-ci.org/cgat-developers/cgat-bench.svg?branch=master
-    :target: https://travis-ci.org/cgat-developers/cgat-bench
+.. image:: https://travis-ci.org/cgat-developers/cgat-daisy.svg?branch=master
+    :target: https://travis-ci.org/cgat-developers/cgat-daisy
 
 ================
 Daisy/CGAT Bench
 ================
 
-Daisy/CGAT Benchmark is a system to design and execute benchmarking
-tasks.
+Daisy is a system to design and execute benchmarking tasks.
 
 After installation, use the ``daisy`` command to see how to use them.
 
 For questions, please open a discussion on the GitHub 
-`issue page <https://github.com/cgat-developers/cgat-bench/issues>`_.
+`issue page <https://github.com/cgat-developers/cgat-daisy/issues>`_.
 
 Installation
 ============
@@ -25,7 +24,7 @@ The preferred method to install Daisy is using the installation script, which us
 Here are the steps::
 
         # download installation script:
-        curl -O https://raw.githubusercontent.com/cgat-developers/cgat-bench/master/install-CGAT-tools.sh
+        curl -O https://raw.githubusercontent.com/cgat-developers/cgat-daisy/master/install-CGAT-tools.sh
 
         # see help:
         bash install-CGAT-tools.sh
