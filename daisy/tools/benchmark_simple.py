@@ -43,10 +43,11 @@ def main(argv):
 
     options, args = P.initialize(argv, config_file="benchmark.yml")
 
-    if options.config_file:
-        P.get_parameters(options.config_file)
-    else:
-        sys.exit(P.main(options, args))
+    # not sure what this does
+    # if not options.config_file:
+    #     P.get_parameters(options.config_file)
+    # else:
+    #     sys.exit(P.main(options, args))
 
     params = P.get_params()
 

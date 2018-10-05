@@ -13,13 +13,14 @@ Installation
 
 We start by creating a conda environment and installing daisy::
 
-    conda create -y -n daisy python=3.6 matplotlib cgatcore
+    conda create -y -n daisy python=3.6 matplotlib
+    pip install cgatcore
     pip install cgat-daisy
     conda install ruamel_yaml pysam
 
 .. note::
 
-   We use a `pip install` until conda package is available.
+   We use a `pip install` until conda packages is available and are up-to-date.
 
 Next, we install a few variant callers (freebayes_, octopus_ and
 bcftools_) and variant metrics that we want to test::

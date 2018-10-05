@@ -207,9 +207,9 @@ These are registered in the task function.
 
       melt the table before uploading. This is important for metrics
       that output a variable number of columns, for example, if a tool
-      outputs one column per sample the database. The argument is a
-      dictionary mapping the table name to parameters in the 
-      `pandas melt <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.melt.html>`_
+      outputs one column per sample. The argument is a dictionary
+      mapping the table name to parameters in the `pandas melt
+      <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.melt.html>`_
       function. For example::
       
          upload_melted = {
