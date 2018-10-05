@@ -1,0 +1,7 @@
+cgatcore
+pandas
+sqlalchemy
+ruffus
+ruamel_yaml
+pytest
+pysam
