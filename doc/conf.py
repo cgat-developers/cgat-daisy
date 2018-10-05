@@ -46,6 +46,10 @@ rst_epilog = """
 .. _postgresql: http://www.postgresql.org/
 .. _sqlite: https://www.sqlite.org/
 .. _sqlalchemy: http://www.sqlalchemy.org/
+.. _ruffus: https://ruffus.readthedocs.io/en/latest
+.. _conda: https://conda.io/docs/user-guide/install/index.html
+.. _RTG: https://www.realtimegenomics.com/
+.. _vcfeval: https://github.com/RealTimeGenomics/rtg-tools
 """
 
 

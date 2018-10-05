@@ -75,7 +75,7 @@ class run_metric_rtg_vcfeval(MetricRunnerVCFRTG):
                               "true_positive_count",
                               "false_positive_count",
                               "false_negative_count",
-                              "false_positive_rate",
+                              "false_discovery_rate",
                               "false_negative_rate",
                               "f_measure"]
         else:
@@ -85,7 +85,7 @@ class run_metric_rtg_vcfeval(MetricRunnerVCFRTG):
                               "true_positive_count",
                               "false_positive_count",
                               "false_negative_count",
-                              "false_positive_rate",
+                              "false_discovery_rate",
                               "false_negative_rate",
                               "f_measure"]
 
@@ -117,7 +117,7 @@ class run_metric_rtg_vcfeval(MetricRunnerVCFRTG):
                 df = pandas.DataFrame(table[1:], columns=table[0])
                 df.columns = output_columns
                 # convert precision and sensitivity
-                df["false_positive_rate"] = 1.0 - df["false_positive_rate"].astype(float)
+                df["false_discovery_rate"] = 1.0 - df["false_discovery_rate"].astype(float)
                 df["false_negative_rate"] = 1.0 - df["false_negative_rate"].astype(float)
                 df.to_csv(outf, sep="\t", index=False)
 
@@ -240,11 +240,11 @@ class run_metric_rtg_vcfdiff(MetricRunnerVCFRTG):
                               "true_positive_count",
                               "false_positive_count",
                               "false_negative_count",
-                              "false_positive_rate",
+                              "false_discovery_rate",
                               "false_negative_rate",
                               "f_measure"]
                 # convert precision and sensitivity
-                df["false_positive_rate"] = 1.0 - df["false_positive_rate"].astype(float)
+                df["false_discovery_rate"] = 1.0 - df["false_discovery_rate"].astype(float)
                 df["false_negative_rate"] = 1.0 - df["false_negative_rate"].astype(float)
                 df.to_csv(outf, sep="\t", index=False)
 

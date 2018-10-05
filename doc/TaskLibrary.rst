@@ -1,7 +1,7 @@
 .. _tasklibrary:
 
 ================
-The Task Library
+Task Library
 ================
 
 Tasks are python functors and are defined in the TaskLibrary

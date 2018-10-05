@@ -607,7 +607,7 @@ def upload_result(infiles, outfile, *extras):
         # uploaded_at=datetime.datetime.now(),
         created=created,
         pipeline_name=pipeline_name,
-        pipeline_version=P.get_version(),
+        pipeline_version=P.get_version()[1],
         pipeline_dir=os.getcwd(),
         title=config["title"],
         description=config["description"],

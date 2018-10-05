@@ -41,7 +41,7 @@ from daisy.tasks import map_tool_to_runner, \
 
 def main(argv):
 
-    options, args = P.initialize(argv)
+    options, args = P.initialize(argv, config_file="benchmark.yml")
 
     if options.config_file:
         P.get_parameters(options.config_file)

@@ -76,6 +76,7 @@ Contents
 
    Installation.rst
    Usage.rst
+   VariantCallingBenchmarkExample.rst
    Reference.rst
    Development.rst
    Tutorials.rst

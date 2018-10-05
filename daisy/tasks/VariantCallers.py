@@ -317,6 +317,39 @@ class run_tool_bcftools(VariantCaller):
                      .format(**locals()))
 
 
+class run_tool_octopus(VariantCaller):
+
+    name = "octopus"
+    path = "octopus"
+
+    def get_version(self):
+        help_string = E.run("{self.path} --version".format(**locals()),
+                            return_stdout=True).strip()
+        return re.search("octopus (.+)$",
+                         help_string).groups()[0]
+
+    def run(self, outfile, params):
+
+        if "--threads" in params.options:
+            job_threads = int(re.search("--threads[= ]*(\d+)",
+                                        params.options).groups()[0])
+
+        bam = resolve_argument(params.bam, sep=" ")
+        reference_fasta = get_reference(params)
+        tmpdir = P.get_temp_filename(clear=True)
+
+        # Octopus seems to have issues if ulimit's are set.
+        return P.run("{params.path} "
+                     "--working-directory $TMPDIR "
+                     "--reads {bam} "
+                     "--reference {reference_fasta} "
+                     "--output {outfile} "
+                     "{params.options} "
+                     ">& {outfile}.log "
+                     .format(**locals()),
+                     job_memory="unlimited")
+
+
 class run_tool_platypus(VariantCaller):
 
     name = "platypus"

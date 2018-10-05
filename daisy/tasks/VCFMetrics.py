@@ -211,7 +211,10 @@ class VCFPreprocessor(Preprocessor):
         elif infile.endswith(".bcf"):
             suffix = "bcf"
             compress_type = "b"
+        else:
+            raise ValueError("unknown suffix for file {}".format(infile))
 
+        # indexing creates .tbi files (for rtg vcfeval)
         infile = IOTools.snip(infile, ".{}".format(suffix))
         if params.copy_vcf:
             statements.append(
@@ -228,7 +231,7 @@ class VCFPreprocessor(Preprocessor):
 
         if params.filter_samples:
             statements.append(
-                "{params.path_{params.path_bcftools}} convert "
+                "{params.path_bcftools} convert "
                 "--samples {params.filter_samples} "
                 "@IN@.{suffix} "
                 "-O z "
@@ -332,7 +335,7 @@ class VCFPreprocessor(Preprocessor):
         if is_true(params.restrict_region):
             statements.append(
                 "if [[ ! -e @IN@.{suffix}.csi || ! -e @IN@.{suffix}.tbi ]]; "
-                "    then {params.path_bcftools} index -f @IN@.{suffix}; fi; "
+                "    then {params.path_bcftools} index --tbi -f @IN@.{suffix}; fi; "
                 "{params.path_bcftools} view "
                 "--regions {params.restrict_region} "
                 "@IN@.{suffix} "
@@ -355,7 +358,7 @@ class VCFPreprocessor(Preprocessor):
         if params.restrict_bed:
             statements.append(
                 "if [[ ! -e @IN@.{suffix}.csi || ! -e @IN@.{suffix}.tbi ]]; "
-                "    then {params.path_bcftools} index -f @IN@.{suffix}; fi; "
+                "    then {params.path_bcftools} index --tbi -f @IN@.{suffix}; fi; "
                 "{params.path_bcftools} filter "
                 "--regions-file {params.restrict_bed} "
                 "@IN@.{suffix} "
@@ -389,9 +392,9 @@ class VCFPreprocessor(Preprocessor):
 
         filename, build_statement, cleanup_statement = P.join_statements(
             statements, infile)
-        filename += ".{suffix}"
+        filename += ".{suffix}".format(**locals())
         build_statement += (
-            "; {params.path_bcftools} index -f {filename} >& {outfile}.index.log"
+            "; {params.path_bcftools} index --tbi -f {filename} >& {outfile}.index.log"
             .format(**locals()))
 
         return filename, build_statement, cleanup_statement
@@ -489,6 +492,8 @@ class MetricRunnerBCFTools(MetricRunnerVCF):
                     is_comment = True
                 else:
                     fields = line[:-1].split("\t")
+                    # sanitize summary fields
+                    fields[2] = re.sub(":", "", re.sub("[ -]", "_", fields[2]))
                     body.append(fields)
                     is_comment = False
             yield header, body

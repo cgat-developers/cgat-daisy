@@ -1,0 +1,56 @@
+title : >-
+  Benchmarking variant callers on NA12878 exome data
+
+description: >-
+  This benchmark calls short variants on NA12878 exome data
+  evaluates the results by comparison against a truth data set
+  (Genomes in a Bottle, NA12878).
+
+tags:
+  - SNV calling
+  - NA12878
+
+database:
+  # we will uload results to a local sqlite database
+  url: sqlite:///./csvdb
+  
+setup:
+  suffix: vcf.gz
+
+  tools:
+    - bcftools
+    - freebayes
+    - octopus
+
+  metrics:
+    - bcftools_stats
+    - rtg_vcfeval
+
+input:
+  reference_fasta: hs37d5.fa
+
+  bam:
+    - NA12878.bam
+
+bcftools:
+  options: --format-fields GQ,GP --multiallelic-caller
+
+bcftools_stats:
+  options: --fasta-ref hs37d5.fa --apply-filters "PASS,."
+  task_specific:
+    freebayes.*:
+      filter_exclude: "FORMAT/GT == '.' || INFO/DP < 5 || QUAL < 20"
+
+rtg_vcfeval:
+
+  path: rtg RTG_MEM=16G
+  
+  map_unknown_genotypes_to_reference: 1
+
+  reference_sdf: hs37d5.sdf
+
+  reference_vcf: HG001_GRCh37_GIAB_highconf_CG-IllFB-IllGATKHC-Ion-10X-SOLID_CHROM1-X_v.3.3.2_highconf_PGandRTGphasetransfer.vcf.gz
+
+  callable_bed: callable_regions.bed.gz
+
+  options: --sample=HG001,NA12878 --ref-overlap
