@@ -9,4 +9,3 @@ sphinxcontrib-programoutput
 # some cgatcore requirements
 paramiko
 gevent
-yaml
