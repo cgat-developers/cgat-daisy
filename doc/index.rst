@@ -15,14 +15,14 @@ At its simplest, an experimental design would look like this::
    setup:
 	tools:
       	- freebayes
-      	- weCall
+      	- octopus
    	metrics:
       	- bcftools_stats
    input:
       bam: *.bam
       reference_fasta: hs37d5.fa
 
-This would apply the variant callers `freebayes` and `weCall` to all
+This would apply the variant callers freebayes_ and octopus_ to all
 files ending in `.bam` in the current directory and running the tool
 `bctools stats` on the results. This is a typical benchmarking
 scenario comparing to variant callers.
@@ -89,3 +89,5 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. _freebayes: https://github.com/ekg/freebayes
+.. _octopus: https://github.com/luntergroup/octopus

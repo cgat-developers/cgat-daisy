@@ -2,11 +2,11 @@
 Variant caller benchmark
 ========================
 
-Daisy comes with :term:`task library` wrapping tools required for
-variant calling and benchmarking variant calls. The following guide
-shows how to install daisy and run a variant-caller benchmark on
-publicly available data. It starts from scratch, though you will have
-to have installed a conda_ environment.
+Inside daisy's :ref:`task library` are some common tools used for
+variant calling. The following guide shows how to install daisy and
+run a variant-caller benchmark on publicly available data. It starts
+from scratch, though you will have to have installed a conda_
+environment.
 
 Installation
 ============
@@ -198,7 +198,20 @@ We now have false positive rates and false negative rates in our table::
    octopus,5.000,1518,1518,25,127,0.0162,0.0772,0.9523,6
    octopus,None,1518,1518,26,127,0.0168,0.0772,0.952,6
 
+Next steps
+==========
+
+The following are some advanced features not covered in this tutorial:
+
+* Running on multiple data sets within the same benchmark.
+
+* Aggregation of data sets, for example for trio analysis.
+
+* Running time-series analysis for monitoring tool performance.
+
 
 .. _freebayes: https://github.com/ekg/freebayes
 .. _bcftools: https://samtools.github.io/bcftools/bcftools.html
 .. _octopus: https://github.com/luntergroup/octopus
+
+
