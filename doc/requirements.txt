@@ -6,3 +6,7 @@ ruamel_yaml
 pytest
 pysam
 sphinxcontrib-programoutput
+# some cgatcore requirements
+paramiko
+gevent
+yaml
