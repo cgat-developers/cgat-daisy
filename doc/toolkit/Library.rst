@@ -1,2 +1,0 @@
-.. automodule:: daisy.Library
-   :members:

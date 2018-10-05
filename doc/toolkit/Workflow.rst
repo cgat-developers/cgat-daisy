@@ -1,2 +1,2 @@
-.. automodule:: daisy.Workflow
+.. automodule:: daisy.workflow
    :members:

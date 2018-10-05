@@ -5,6 +5,10 @@ Arvados integration
 This section describes the various ways that the benchmark system
 can work with :term:`Arvados` :term:`Keep` and :term:`Crunch`.
 
+.. note::
+
+   This functionality is experimental.
+
 .. note:: 
 
    The commands below assume that the arvados `CLI environment

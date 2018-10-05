@@ -4,30 +4,69 @@ Daisy Documentation
 
 .. image:: daisies.png
 
-Daisy is a framework and toolkit to perform computational analyses
-efficiently and reproducibly. It's aim is to build:
+Daisy is a framework to perform computational experiments efficiently,
+reproducibly, and at scale. An experiment is defined by an
+experimental design in :term:`yaml` format that describes one or more
+tools to be run on one or more data sets and collecting on or more
+metrics from the results.
 
-* Abstract computational envirorment to achieve portability,
-* Provide logging and runtime metrics,
-* Provide configuration and parameterization,
-* Provide Consistent CLI for tools and workflows,
-* Provide templates for tools and pipelines
+At its simplest, an experimental design would look like this::
 
-.. image:: daisy_components.png
+   setup:
+	tools:
+      	- freebayes
+      	- weCall
+   	metrics:
+      	- bcftools_stats
+   input:
+      bam: *.bam
+      reference_fasta: hs37d5.fa
 
-Daisy is based on a foundation of powerful libraries for data
-handling, data management, job execution, logging. On top of this
-foundation sits the the daisy engine that uses these libraries to
-provide a consistent environment for users to build and execute
-workflows and execute tasks.
+This would apply the variant callers `freebayes` and `weCall` to all
+files ending in `.bam` in the current directory and running the tool
+`bctools stats` on the results. This is a typical benchmarking
+scenario comparing to variant callers.
 
-Daisy applications are built using the daisy engine. The applications
-are stand-alone tools (:ref:`Toolkit`) with a specific functionality
-or might be full workflows (:ref:`Daisy chains`) running daisy tools
-or 3rd-part applications
+The same experimental design can be used for parameter optimization,
+for example::
 
-This documentation provides usage instruction for all of Daisy's
-components.
+   setup:
+	tools:
+      	- freebayes
+   	metrics:
+      	- bcftools_stats
+   input:
+      bam: *.bam
+      reference_fasta: hs37d5.fa
+   freebayes:
+      options:
+	- --haplotype-length 50
+	- --haplotype-length 100
+
+This design would run freebayes with two different options.
+
+While originally developed for benchmarking, we have found the same
+framework useful in processing large data sets. For example, to map
+a large number of reads from a high-throughput sequencing experiment,
+you could say::
+
+   setup:
+	tools:
+      	- bwa_mem
+   	metrics:
+      	- samtools_stats
+	
+   input:
+      fastq: *.fastq.gz
+      reference_fasta: hs37d5.fa
+      group_regex: /([^/]+)-R.*.fastq.gz
+      group_alias: \1
+
+The regular expression ensures that the two components of a sample
+(named `<sample>-R1.fastq.gz` and `<sample>-R2.fastq.gz` are grouped
+and supplied together to the mapping tool `bwa mem`.  The `samtools
+stats` command is run to provide QC metrics such as the proportion of
+reads mapped to the reference genome.
 
 Contents:
 
@@ -35,9 +74,8 @@ Contents:
    :maxdepth: 2
 
    Installation.rst
-   DaisyChains.rst
-   Tools.rst
-   Engine.rst
+   Usage.rst
+   Reference.rst
    Development.rst
    Tutorials.rst
    Glossary.rst

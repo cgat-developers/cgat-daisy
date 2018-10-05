@@ -30,14 +30,14 @@ that are not present during the tests. To circumvent these issues, add
 a :term:`test` directive to the configuration file specifying explicit
 filenames::
 
-  fastq: ../data/GenomicsPLC-HG*.fastq.gz
+  fastq: ../data/HG*.fastq.gz
 
   test:
     fastq:
-      ../data/GenomicsPLC-HG001-R1.fastq.gz
-      ../data/GenomicsPLC-HG001-R2.fastq.gz
-      ../data/GenomicsPLC-HG002-R1.fastq.gz
-      ../data/GenomicsPLC-HG002-R2.fastq.gz
+      ../data/HG001-R1.fastq.gz
+      ../data/HG001-R2.fastq.gz
+      ../data/HG002-R1.fastq.gz
+      ../data/HG002-R2.fastq.gz
 
   group_regex: /([^/]+)-R.*.fastq.gz
 

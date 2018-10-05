@@ -1,3 +1,0 @@
-.. automodule:: daisy.IOTools
-   :members:
-
