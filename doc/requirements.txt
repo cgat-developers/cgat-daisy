@@ -5,3 +5,4 @@ ruffus
 ruamel_yaml
 pytest
 pysam
+sphinxcontrib-programoutput
