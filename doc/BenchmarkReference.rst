@@ -1,7 +1,7 @@
 .. _reference:
 
 =======================
-Reference
+Tag reference
 =======================
 
 The :ref:`reference` lists all the :term:`sections` and

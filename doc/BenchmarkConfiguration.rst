@@ -1,8 +1,8 @@
 .. _configuration:
 
-=============
-Configuration
-=============
+=======================
+Configuring a benchmark
+=======================
 
 Benchmark reads its configuration from configuration files in
 :term:`yaml` format. The following configuration files are read:

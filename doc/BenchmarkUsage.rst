@@ -1,5 +1,5 @@
 ==================
-Using the platform
+Overview
 ==================
 
 This section provides a brief tutorial on how to run the Benchmark
