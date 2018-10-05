@@ -73,8 +73,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Benchmark'
-copyright = u'2015, Andreas Heger'
+project = u'Daisy'
+copyright = u'2015,2016,2017,2018 Andreas Heger'
 author = u'Andreas Heger'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -279,7 +279,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'benchmark', u'Benchmark Documentation',
+    (master_doc, 'daisy', u'Daisy Documentation',
      [author], 1)
 ]
 
@@ -293,7 +293,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Benchmark', u'Benchmark Documentation',
+    (master_doc, 'daisy', u'Daisy Documentation',
      author, 'Benchmark', 'One line description of project.',
      'Miscellaneous'),
 ]
