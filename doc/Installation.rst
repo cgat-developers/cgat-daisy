@@ -8,24 +8,18 @@ Code installation
 To install the benchmarking suite from the repository, clone the
 latest version from github::
 
-    git clone https://github.com/Genomicsplc/daisy
-    cd daisy/daisy
-    ./setup-dev-env.sh
+    git clone https://github.com/cgat-developers/cgat-daisy
+    cd cgat-daisy
+    python setup.py install
 
-To install from a release artifact, download the artifact from
-artifactory::
+Alternatively, daisy release packages are available via pypi::
 
-  wget http://artifactory.genomicsplc.com:8081/artifactory/genomics/daisy/release/latest/daisy-0.2.0-776-tools.tar.gz
-  tar -xzf daisy-0.2.0-776-tools.tar.gz
-  daisy/install http://artifactory.genomicsplc.com:8081/artifactory/genomics/daisy/release/latest/linux-64
+   pip install cgat-daisy
 
-Before running any tool, make sure to activate the environment::
+and conda::
 
-  source daisy/activate
+   conda install -c bioconda cgat-daisy
 
-In both cases you can get a list of daisy commands by typing::
-
-  daisy
 
 Configuration
 =============
@@ -36,7 +30,7 @@ it exists it will be used to set default values. A typical
 configuration file might look like this::
 
   cluster:
-    queue: gplc.qc
+    queue: all.q
     options: ""
     priority: -10
     memory_resource: h_vmem
@@ -52,7 +46,7 @@ System packages
 --------------------
 
 Daisy requires certain system packages installed. Below is
-an incomplete list:
+an (incomplete) list:
 
 * libsqlite3-dev
 * libfreetype6

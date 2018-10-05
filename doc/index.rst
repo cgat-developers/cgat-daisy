@@ -46,8 +46,8 @@ for example::
 This design would run freebayes with two different options.
 
 While originally developed for benchmarking, we have found the same
-framework useful in processing large data sets. For example, to map
-a large number of reads from a high-throughput sequencing experiment,
+framework useful in processing large data sets. For example, to map a
+multiple read data sets from a high-throughput sequencing experiment,
 you could say::
 
    setup:
@@ -68,7 +68,8 @@ and supplied together to the mapping tool `bwa mem`.  The `samtools
 stats` command is run to provide QC metrics such as the proportion of
 reads mapped to the reference genome.
 
-Contents:
+Contents
+========
 
 .. toctree::
    :maxdepth: 2

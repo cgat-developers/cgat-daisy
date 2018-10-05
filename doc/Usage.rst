@@ -37,7 +37,7 @@ workflows in a systematic fashion. Its hallmarks are:
    BenchmarkConfiguration.rst
    BenchmarkDatabase.rst
    BenchmarkReference.rst
-
+   CommandReference.rst
 
 
 

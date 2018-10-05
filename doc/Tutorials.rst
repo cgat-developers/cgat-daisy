@@ -29,7 +29,3 @@ repository::
 			 "{infile} > {outfile}".format(**locals()))
 
 The metric will be auto-discovered.
-
-
-
-

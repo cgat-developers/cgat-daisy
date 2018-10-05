@@ -277,33 +277,33 @@ Contents of the task library
 The inheritance diagram of the TaskLibrary is below:
 
 .. inheritance-diagram::
-   daisy.TaskLibrary.Runner
-   daisy.TaskLibrary.ToolRunner
-   daisy.TaskLibrary.MetricRunner
-   daisy.TaskLibrary.BAMTools
-   daisy.TaskLibrary.BAMMetrics
-   daisy.TaskLibrary.VariantCallers
-   daisy.TaskLibrary.VCFTools
-   daisy.TaskLibrary.VCFMetrics
+   daisy.tasks.Runner
+   daisy.tasks.ToolRunner
+   daisy.tasks.MetricRunner
+   daisy.tasks.BAMTools
+   daisy.tasks.BAMMetrics
+   daisy.tasks.VariantCallers
+   daisy.tasks.VCFTools
+   daisy.tasks.VCFMetrics
 
 Task library methods
 ------------------------------------------------
 
 This section lists modules containing tool runners and metric runners.
 
-.. automodule:: daisy.TaskLibrary.BAMTools
+.. automodule:: daisy.tasks.BAMTools
    :undoc-members:
    :members:
 
-.. automodule:: daisy.TaskLibrary.BAMMetrics
+.. automodule:: daisy.tasks.BAMMetrics
    :undoc-members:
    :members:
 
-.. automodule:: daisy.TaskLibrary.VCFMetrics
+.. automodule:: daisy.tasks.VCFMetrics
    :undoc-members:
    :members:
 
-.. automodule:: daisy.TaskLibrary.VariantCallers
+.. automodule:: daisy.tasks.VariantCallers
    :undoc-members:
    :members:
 
@@ -312,14 +312,14 @@ The task library engine
 
 This section lists modules that are part of the task library engine
 
-.. automodule:: daisy.TaskLibrary.Runner
+.. automodule:: daisy.tasks.Runner
    :undoc-members:
    :members:
 
-.. automodule:: daisy.TaskLibrary.MetricRunner
+.. automodule:: daisy.tasks.MetricRunner
    :undoc-members:
    :members:
 
-.. automodule:: daisy.TaskLibrary.ToolRunner
+.. automodule:: daisy.tasks.ToolRunner
    :undoc-members:
    :members:

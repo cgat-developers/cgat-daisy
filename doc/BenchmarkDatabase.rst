@@ -1,8 +1,8 @@
 .. _data_organization:
 
-=================
-Data organisation
-=================
+==================
+Navigating results
+==================
 
 Once all tasks have completed, the data will be uploaded into a
 database. Currently, both sqlite_ and postgresql_ have been tested,

@@ -1,6 +1,6 @@
-=============
-Daisy commands
-==============
+=================
+Command Reference
+=================
 
 The daisy framework includes a variety of commands and commands. These
 tools are available through the :file:`daisy` command line

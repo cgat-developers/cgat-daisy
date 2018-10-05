@@ -8,7 +8,7 @@ The script outputs a tab-separated table with three columns:
 .. csv-table::
    :header: "column", "description"
 
-   "category", "task category (tool|metric|...)
+   "category", "task category (tool|metric|...)"
    "name", "task name"
    "version", "version string. Set to 'unavailable' if tools in to found"
 
