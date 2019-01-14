@@ -29,8 +29,8 @@ setup:
 input:
   reference_fasta: hs37d5.fa
 
-  bam:
-    - NA12878.bam
+  bam: "*.bam"
+  regex: "(NA\\d+).bam"
 
 bcftools:
   options: --format-fields GQ,GP --multiallelic-caller
