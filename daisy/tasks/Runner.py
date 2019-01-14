@@ -504,8 +504,19 @@ class Runner(object):
                                         str(benchmark[0])))
             return
 
-        with open(filename, "w") as outf:
-            outf.write("\t".join(header) + "\n")
+        # append to existing file
+        if os.path.exists(filename):
+            open_mode = "a"
+            first_line = IOTools.get_first_line(filename)
+            if first_line != "\t".join(header):
+                raise ValueError(
+                    "header mismatch when appending to existing file {}".format(filename))
+        else:
+            open_mode = "w"
+
+        with open(filename, open_mode) as outf:
+            if open_mode == "w":
+                outf.write("\t".join(header) + "\n")
             for b in benchmark:
                 outf.write("\t".join(map(str, b)) + "\n")
 
