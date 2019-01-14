@@ -729,6 +729,7 @@ def add_collations_to_pipeline(pipeline,
         # automatically set alias through regex (required field)
         taskf._input_regex = coll_info.get("regex", None)
         taskf._input_alias = coll_info.get("alias", None)
+        taskf._replicate_regex = coll_info.get("regex_replicate", None)
         taskf.__name__ = coll
 
         if tasks is not None:

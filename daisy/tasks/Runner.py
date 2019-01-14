@@ -189,6 +189,7 @@ class Runner(object):
         self._explicit_alias = []
         self._runtime_alias = None
         self._runtime_regex = None
+        self._replicate_regex = None
         self._ignore = None
         self._replication_id = None
 
@@ -201,7 +202,7 @@ class Runner(object):
                 continue
             if key in ("regex", "alias", "name",
                        "runtime_regex", "runtime_alias",
-                       "ignore"):
+                       "ignore", "replicate_regex"):
                 # add private functions here. Prevents for example
                 # regex matching itself.
                 setattr(self, "_" + key, value)
@@ -268,6 +269,24 @@ class Runner(object):
 
     def set_replication_id(self, replication_id):
         self._replication_id = replication_id
+
+    def set_replication_id_from_regex(self, infiles):
+        if self._replicate_regex:
+            try:
+                replication_ids = [re.search(self._replicate_regex, x).groups()[0] for x in infiles]
+            except AttributeError:
+                raise ValueError("replication id could not be extracted from {} with regex {}".format(
+                    infiles, self._replicate_regex))
+            replication_ids = list(set(replication_ids))
+            if len(replication_ids) > 1:
+                raise ValueError("received multiple replication ids from {} with regex {}".format(
+                    infiles, self._replicate_regex))
+            try:
+                self._replication_id = int(replication_ids[0])
+            except ValueError:
+                raise ValueError("non-numerical replication id: {}".format(replication_ids[0]))
+        else:
+            self._replication_id = 1
 
     def register_input(self,
                        input_files=None,
@@ -476,6 +495,8 @@ class Runner(object):
             d["replication_id"] = 1
 
         filename = self.build_meta_filename(outfile, "benchmark.info")
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
 
         with open(filename, "w") as outf:
             outf.write(json.dumps(d, sort_keys=True))
@@ -503,20 +524,22 @@ class Runner(object):
                                         str(ex),
                                         str(benchmark[0])))
             return
-
+        
+        header_line = "\t".join(header) + "\n"
         # append to existing file
         if os.path.exists(filename):
             open_mode = "a"
             first_line = IOTools.get_first_line(filename)
-            if first_line != "\t".join(header):
+            if first_line != header_line:
                 raise ValueError(
-                    "header mismatch when appending to existing file {}".format(filename))
+                    "header mismatch when appending to existing file {}: got '{}', expected '{}'".format(
+                        filename, first_line, "\t".join(header_line)))
         else:
             open_mode = "w"
 
         with open(filename, open_mode) as outf:
             if open_mode == "w":
-                outf.write("\t".join(header) + "\n")
+                outf.write(header_line)
             for b in benchmark:
                 outf.write("\t".join(map(str, b)) + "\n")
 

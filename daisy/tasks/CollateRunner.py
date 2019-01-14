@@ -28,6 +28,8 @@ class CollateRunner(Runner):
                                             regex=self._input_regex,
                                             alias=self._input_alias)
 
+        self.set_replication_id_from_regex(infiles)
+
         if isinstance(outfile, list):
             outdir = [os.path.dirname(x) for x in outfile]
             basefile = os.path.commonprefix(outfile)
