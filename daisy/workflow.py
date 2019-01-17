@@ -533,9 +533,12 @@ def add_tools_to_pipeline(pipeline,
     ignore = config["setup"].get("ignore", [])
     ignore.extend(config["input"].get("ignore", []))
 
-    replication = int(config["setup"].pop("replication", 1))
-    if replication > 1:
-        P.get_logger().info("running experiment with {} replications".format(replication))
+    do_replication = config["setup"].pop("replication", None)
+    if do_replication:
+        replications = int(do_replication)
+        P.get_logger().info("running experiment with {} replications".format(replications))
+    else:
+        replications = 1
 
     # update selected fields for testing purposes
     is_test = "is_test" in config
@@ -563,12 +566,12 @@ def add_tools_to_pipeline(pipeline,
 
     for toolf, input_files in itertools.product(tool_functions, input_combos):
 
-        for replication_idx in range(replication):
+        for replication_idx in range(replications):
             # create a copy of the task function and give it its unique name
             # by mangling it with the input_files
             taskf = copy.copy(toolf)
 
-            if replication > 1:
+            if do_replication:
                 taskf.set_replication_id(replication_idx + 1)
 
             taskf.register_input(input_files,
