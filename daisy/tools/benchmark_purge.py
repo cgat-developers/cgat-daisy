@@ -7,7 +7,7 @@ run.
 
 import sys
 import cgatcore.experiment as E
-import daisy.storage as Storage
+from daisy.storage import purge_run_id
 
 
 def main(argv=None):
@@ -39,9 +39,9 @@ def main(argv=None):
                               argv=argv,
                               add_output_options=True)
 
-    storage.purge_run_id(options.run_id,
-                         options.database_url,
-                         dry_run=options.dry_run)
+    purge_run_id(options.run_id,
+                 options.database_url,
+                 dry_run=options.dry_run)
 
     E.stop()
 
