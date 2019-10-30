@@ -41,7 +41,7 @@ from daisy.tasks import map_tool_to_runner, \
 
 def main(argv):
 
-    options, args = P.initialize(argv, config_file="benchmark.yml")
+    options = P.initialize(argv, config_file="benchmark.yml")
 
     # not sure what this does
     # if not options.config_file:
@@ -216,7 +216,7 @@ def main(argv):
         E.debug("construction of workflow completed")
 
         E.debug("starting workflow")
-        P.run_workflow(options, args, pipeline)
+        P.run_workflow(options, pipeline=pipeline)
 
     E.stop()
 
