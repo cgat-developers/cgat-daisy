@@ -43,6 +43,10 @@ def main(argv):
 
     options = P.initialize(argv, config_file="benchmark.yml")
 
+    # compatibility with cgatcore < 0.6.3
+    if isinstance(options, tuple):
+        options = options[0]
+
     # not sure what this does
     # if not options.config_file:
     #     P.get_parameters(options.config_file)
@@ -50,7 +54,8 @@ def main(argv):
     #     sys.exit(P.main(options, args))
 
     params = P.get_params()
-
+    breakpoint()
+    
     with arvados_enabled(always_mount=options.always_mount):
         mountpoint = params.get("mount_point", None)
         if mountpoint:
