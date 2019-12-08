@@ -379,7 +379,6 @@ conda_install() {
 	
     else # if travis install
 	log "performing travis install"
-	install_cgat_core
 
 	log "installing daisy"
 	cd $CGAT_HOME
