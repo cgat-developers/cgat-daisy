@@ -54,7 +54,6 @@ def main(argv):
     #     sys.exit(P.main(options, args))
 
     params = P.get_params()
-    breakpoint()
     
     with arvados_enabled(always_mount=options.always_mount):
         mountpoint = params.get("mount_point", None)
