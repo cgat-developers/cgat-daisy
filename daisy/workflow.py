@@ -27,20 +27,6 @@ from daisy.tasks.Runner import EmptyRunner
 from daisy.tasks.ToolRunner import run_tool_identity
 
 
-def merge_shared_values(values):
-
-    try:
-        shared = [x for x in values if x.startswith("prefix")]
-    except AttributeError:
-        return values
-
-    if shared:
-        prefix = re.sub("prefix\s*=\s*", "", shared[0])
-        return [prefix + " " + x for x in values if not x.startswith("prefix")]
-    else:
-        return values
-
-
 def build_output(taskf, result_dir):
 
     multiple_outputs = isinstance(taskf.output, list)
