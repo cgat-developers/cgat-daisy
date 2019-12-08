@@ -325,9 +325,6 @@ conda_install() {
 	    # brute force: modify console_scripts variable/entry point for cgat command
 	    # sed -i'' -e 's/CGATScripts/scripts/g' setup.py
 
-	    # install cgat-core
-	    install_cgat_core
-
 	    # Python preparation
 	    python setup.py develop
 
@@ -396,67 +393,6 @@ conda_install() {
     daisy
     
 } # conda install
-
-
-# helper function to install cgat-core
-install_cgat_core() {
-
-    log "installing cgat-core: download_type: $CODE_DOWNLOAD_TYPE"
-
-    OLDWD=`pwd`
-    cd $CGAT_HOME
-
-    if [[ $CODE_DOWNLOAD_TYPE -eq 0 ]] ; then
-	conda uninstall -y cgatcore
-	# get the latest version from Git Hub in zip format
-	curl -LOk https://github.com/cgat-developers/cgat-core/archive/$CORE_BRANCH.zip
-	unzip $CORE_BRANCH.zip
-	rm $CORE_BRANCH.zip
-	if [[ ${RELEASE} ]] ; then
-	    NEW_NAME=`echo $CORE_BRANCH | sed 's/^v//g'`
-	    mv cgat-core-$NEW_NAME/ cgat-core/
-	else
-	    mv cgat-core-$CORE_BRANCH/ cgat-core/
-	fi
-    elif [[ $CODE_DOWNLOAD_TYPE -eq 1 ]] ; then
-	conda uninstall -y cgatcore
-	# get latest version from Git Hub with git clone
-	git clone --branch=$CORE_BRANCH https://github.com/cgat-developers/cgat-core.git
-    elif [[ $CODE_DOWNLOAD_TYPE -eq 2 ]] ; then
-	conda uninstall -y cgatcore
-	# get latest version from Git Hub with git clone
-	git clone --branch=$CORE_BRANCH git@github.com:cgat-developers/cgat-core.git
-    else
-	log "using latest conda version for cgatcore"
-	return
-    fi
-
-    cd cgat-core/
-
-    # remove install_requires (no longer required with conda package)
-    sed -i'' -e '/REPO_REQUIREMENT/,/pass/d' setup.py
-    sed -i'' -e '/# dependencies/,/dependency_links=dependency_links,/d' setup.py
-    python setup.py develop
-
-    if [[ $? -ne 0 ]] ; then
-	echo
-	echo " There was a problem doing: 'python setup.py develop' "
-	echo " Installation did not finish properly. "
-	echo
-	echo " Please submit this issue via Git Hub: "
-	echo " https://github.com/cgat-developers/cgat-bench/issues "
-	echo
-	print_env_vars
-
-    fi # if-$?
-
-    # revert setup.py if downloaded with git
-    [[ $CODE_DOWNLOAD_TYPE -ge 1 ]] && git checkout -- setup.py
-
-    # go back to old working directory
-    cd $OLDWD
-
-} # install_cgat_core
 
 
 # test code with conda install
