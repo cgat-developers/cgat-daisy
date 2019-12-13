@@ -28,9 +28,12 @@ def get_default_params():
     repository.
     """
 
-    with IOTools.open_file(os.path.join(os.path.dirname(__file__),
-                                        "defaults.yml")) as inf:
-        result = yaml.load(inf, Loader=RoundTripLoader)
+    defaults = os.path.join(os.path.dirname(__file__), "defaults.yml")
+    if os.path.exists(defaults):
+        with IOTools.open_file(defaults) as inf:
+            result = yaml.load(inf, Loader=RoundTripLoader)
+    else:
+        result = {}
     return result
 
 

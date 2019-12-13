@@ -44,7 +44,7 @@ setup(
     url="http://www.cgat.org/cgat/Tools/",
     packages=daisy_packages,
     package_dir=daisy_package_dirs,
-    include_package_data=True,
+    package_data={"daisy": ["tasks/*.yml"]},
     entry_points={
         'console_scripts': ['daisy = daisy.tools.cli:main'],
     },
