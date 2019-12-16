@@ -107,5 +107,85 @@ def test_groupby_design_with_combinatorial_option(tmp_path):
           {'option1': 'value2', 'option2': 'valueB', "name": "label4", "option3": "valueY"}]
     
     
+def test_groupby_regex(tmp_path):
+
+    assert build_combinations(
+        {"groupby": "regex",
+         "files_a": ["{}/data_0.a".format(tmp_path),
+                     "{}/data_1.a".format(tmp_path)],
+         "files_b": ["{}/data_0.b".format(tmp_path),
+                     "{}/data_1.b".format(tmp_path)],
+         "files_a_regex": r"data_(\d+).a",
+         "files_b_regex": r"data_(\d+).b"}) == \
+        [{'files_a': "{}/data_0.a".format(tmp_path),
+          'files_b': "{}/data_0.b".format(tmp_path),
+          'name': "0"},
+         {'files_a': "{}/data_1.a".format(tmp_path),
+          'files_b': "{}/data_1.b".format(tmp_path),
+          'name': "1"}]
+
+
+def test_groupby_regex_raises_when_datapoint_missing(tmp_path):
+    with pytest.raises(ValueError):
+        build_combinations(
+            {"groupby": "regex",
+             "files_a": ["{}/data_0.a".format(tmp_path)],
+             "files_b": ["{}/data_0.b".format(tmp_path),
+                         "{}/data_1.b".format(tmp_path)],
+             "files_a_regex": r"data_(\d+).a",
+             "files_b_regex": r"data_(\d+).b"})
     
 
+def test_groupby_regex_with_constant(tmp_path):
+
+    assert build_combinations(
+        {"groupby": "regex",
+         "files_x": "x.y",
+         "files_a": ["{}/data_0.a".format(tmp_path),
+                     "{}/data_1.a".format(tmp_path)],
+         "files_b": ["{}/data_0.b".format(tmp_path),
+                     "{}/data_1.b".format(tmp_path)],
+         "files_a_regex": r"data_(\d+).a",
+         "files_b_regex": r"data_(\d+).b"}) == \
+        [
+            {'files_a': "{}/data_0.a".format(tmp_path),
+             'files_b': "{}/data_0.b".format(tmp_path),
+             'files_x': "x.y",
+             'name': "0"},
+            {'files_a': "{}/data_1.a".format(tmp_path),
+             'files_b': "{}/data_1.b".format(tmp_path),
+             'files_x': "x.y",
+             'name': "1"},
+        ]
+
+
+def test_groupby_regex_with_combinatorial_option(tmp_path):
+
+    assert build_combinations(
+        {"groupby": "regex",
+         "files_x": ["y.x", "z.x"],
+         "files_a": ["{}/data_0.a".format(tmp_path),
+                     "{}/data_1.a".format(tmp_path)],
+         "files_b": ["{}/data_0.b".format(tmp_path),
+                     "{}/data_1.b".format(tmp_path)],
+         "files_a_regex": r"data_(\d+).a",
+         "files_b_regex": r"data_(\d+).b"}) == \
+        [
+            {'files_a': "{}/data_0.a".format(tmp_path),
+             'files_b': "{}/data_0.b".format(tmp_path),
+             'files_x': "y.x",
+             'name': "0"},
+            {'files_a': "{}/data_0.a".format(tmp_path),
+             'files_b': "{}/data_0.b".format(tmp_path),
+             'files_x': "z.x",
+             'name': "0"},
+            {'files_a': "{}/data_1.a".format(tmp_path),
+             'files_b': "{}/data_1.b".format(tmp_path),
+             'files_x': "y.x",
+             'name': "1"},
+            {'files_a': "{}/data_1.a".format(tmp_path),
+             'files_b': "{}/data_1.b".format(tmp_path),
+             'files_x': "z.x",
+             'name': "1"},
+        ]
+    

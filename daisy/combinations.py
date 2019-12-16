@@ -98,8 +98,49 @@ def build_combinations_from_design_file(config):
         ret_config[shared_value] = config[shared_value]
     
     return ret_config
-        
 
+
+def build_combinations_from_regex(config):
+
+    slots = {}
+    all_keys = set()
+    to_remove = set()
+    for regex_key, regex_pattern in config.items():
+        short_key = regex_key[:-len("_regex")]
+        if regex_key.endswith("_regex") and short_key in config:
+            rx = re.compile(regex_pattern)
+            pairs = {}
+            for f in config[short_key]:
+                try:
+                    key = "_".join(rx.search(f).groups())
+                except AttributeError as ex:
+                    raise ValueError("file {} does not match '{}'".format(
+                        f, regex_pattern))
+                pairs[key] = f
+                all_keys.add(key)
+            slots[short_key] = pairs
+            to_remove.add(short_key)
+            to_remove.add(regex_key)
+
+    combinations = []
+    for k in sorted(all_keys):
+        combination = {}
+        for slot_key, slot in slots.items():
+            if k not in slot:
+                raise ValueError(
+                    "data set for '{}' misses data point '{}'".format(slot_key, k))
+            combination[slot_key] = slot[k]
+        combination["name"] = k
+        combinations.append(combination)
+        
+    ret_config = {PLACEHOLDER_KEY: combinations}
+    for k, v in config.items():
+        if k not in to_remove:
+            ret_config[k] = v
+    
+    return ret_config
+
+        
 def build_combinations_from_config(config):
 
     # add multiplicity of input files
@@ -209,20 +250,23 @@ def build_combinations(config):
     groupby = "option"
     if "groupby" in config:
         groupby = config["groupby"].strip()
-        if groupby not in ("label", "option", "file"):
+        if groupby not in ("label", "option", "file", "regex"):
             raise ValueError(
                 "unknown groupby option '{}', "
                 "expected one of {}".format(
-                    groupby, str(("label", "option", "file"))))
+                    groupby, str(("label", "option", "file", "regex"))))
         del config["groupby"]
 
     if groupby == "file":
         config = build_combinations_from_design_file(config)
         groupby = "option"
         
+    if groupby == "regex":
+        config = build_combinations_from_regex(config)
+        groupby = "option"
+
     if groupby == "option":
         combinations = build_combinations_from_config(config)
-        
     elif groupby == "label":
         combinations = []
         for k, v in list(config.items()):

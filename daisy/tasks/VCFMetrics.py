@@ -4,7 +4,10 @@ import json
 import pandas
 import collections
 
-import pysam
+try:
+    import pysam
+except ImportError:
+    pass
 
 from .Runner import compare_sets, dict_to_labelvalue, is_true, is_set, \
     resolve_argument, get_associated_file
@@ -412,7 +415,7 @@ class MetricRunnerVCFTools(MetricRunnerVCF):
     def get_version(self):
         help_string = E.run("{self.path}".format(**locals()),
                             return_stdout=True).strip()
-        return re.search("VCFtools (\S+)", help_string).groups()[0]
+        return re.search(r"VCFtools (\S+)", help_string).groups()[0]
 
     def run(self, infile, outfile, params):
 
@@ -476,7 +479,7 @@ class MetricRunnerBCFTools(MetricRunnerVCF):
     def get_version(self):
         help_string = E.run("{self.path}".format(**locals()),
                             return_stderr=True).strip()
-        return re.search("Version: (\S+)", help_string).groups()[0]
+        return re.search(r"Version: (\S+)", help_string).groups()[0]
 
     def split_output(self, outfile):
 
@@ -501,7 +504,7 @@ class MetricRunnerBCFTools(MetricRunnerVCF):
         # split into separate files for upload
         with open(outfile) as inf:
             for header, body in _split_output(inf):
-                header = re.sub("\[\d+\]", "", header[-1][2:])
+                header = re.sub(r"\[\d+\]", "", header[-1][2:])
                 fields = header.split("\t")
                 identifier = fields.pop(0)
                 try:
@@ -740,7 +743,7 @@ class run_metric_bcftools_stats(MetricRunnerBCFTools):
             # tabix.
             if "--regions-file" in options or "-r " in options:
                 try:
-                    orig_bedfile = re.search("(-r |--regions-file=*)\s*(\S+)", options).groups()[1]
+                    orig_bedfile = re.search(r"(-r |--regions-file=*)\s*(\S+)", options).groups()[1]
                 except AttributeError:
                     raise ValueError("could not extract regions file from '{}'".format(options))
                 new_bedfile = outfile + ".regions.gz"
@@ -886,7 +889,7 @@ class run_metric_bcftools_roh(MetricRunnerBCFTools):
                         continue
                     if is_comment:
                         continue
-                    header = re.sub("\[\d+\]", "", line[2:-1]).split("\t")
+                    header = re.sub(r"\[\d+\]", "", line[2:-1]).split("\t")
                     identifier = header.pop(0)
                     try:
                         tablename = self.map_section_to_table[identifier]
@@ -1072,7 +1075,7 @@ class run_metric_bcftools_stats_compare_vcf_to_truth_vcf(MetricRunnerBCFTools):
             # tabix.
             if "--regions-file" in options or "-r " in options:
                 try:
-                    orig_bedfile = re.search("(-r |--regions-file=*)\s*(\S+)", options).groups()[1]
+                    orig_bedfile = re.search(r"(-r |--regions-file=*)\s*(\S+)", options).groups()[1]
                 except AttributeError:
                     raise ValueError("could not extract regions file from '{}'".format(options))
                 new_bedfile = outfile + ".regions.gz"
@@ -1111,7 +1114,7 @@ class run_metric_useq_vcfcomparator(MetricRunnerVCF):
     def get_version(self):
         help_string = E.run("java -jar {self.path} -h".format(**locals()),
                             return_stdout=True).strip()
-        return re.search("USeq_(\S+)", help_string).groups()[0]
+        return re.search(r"USeq_(\S+)", help_string).groups()[0]
 
     def run(self, infile, outfile, params):
 
@@ -1200,9 +1203,9 @@ class run_metric_bcftools_query(MetricRunnerBCFTools):
             if params.force_unique == "ignore":
                 filter_statement = '| grep -v ","'
             elif params.force_unique == "first":
-                filter_statement = '| perl -p -e "s/,\S+//g"'
+                filter_statement = r'| perl -p -e "s/,\S+//g"'
             elif params.force_unique == "last":
-                filter_statement = '| perl -p -e "s/\S+,//g"'
+                filter_statement = r'| perl -p -e "s/\S+,//g"'
             else:
                 raise ValueError("unknown make_unique value {}".format(
                     self.make_unique))
@@ -1273,7 +1276,7 @@ class run_metric_bcftools_query_sample(MetricRunnerBCFTools):
                 "{options} "
                 "{infile} "
                 "2> {outfile}.log "
-                "| perl -p -e 's/\[\d+\]//g if (/^#/); s/^# *//' "
+                r"| perl -p -e 's/\[\d+\]//g if (/^#/); s/^# *//' "
                 "> {outfile}.tmp".format(**locals()))
         else:
             statement = (
@@ -1281,7 +1284,7 @@ class run_metric_bcftools_query_sample(MetricRunnerBCFTools):
                 "{options} "
                 "{infile} "
                 "2> {outfile}.log "
-                "| perl -p -e 's/\[\d+\]//g if (/^#/); s/:\S+//g; s/^# *//' "
+                r"| perl -p -e 's/\[\d+\]//g if (/^#/); s/:\S+//g; s/^# *//' "
                 "> {outfile}".format(**locals()))
 
         retval = self.run_with_preprocessing(
@@ -1501,7 +1504,7 @@ class run_metric_variant_effect_predictor(MetricRunnerVCF):
     def get_version(self):
         help_string = E.run("perl {self.path}".format(**locals()),
                             return_stdout=True).strip()
-        return re.search("version (\S+)", help_string).groups()[0]
+        return re.search(r"version (\S+)", help_string).groups()[0]
 
     def run(self, infile, outfile, params):
 
@@ -1644,7 +1647,7 @@ class MetricRunnerVCFBedtools(MetricRunnerVCF):
     def get_version(self):
         help_string = E.run("{self.path} --version".format(**locals()),
                             return_stdout=True).strip()
-        return re.search("bedtools (\S+)", help_string).groups()[0]
+        return re.search(r"bedtools (\S+)", help_string).groups()[0]
 
 
 class run_metric_vcf_bedtools_jaccard(MetricRunnerVCFBedtools):
