@@ -96,7 +96,7 @@ def build_combinations_from_design_file(config):
     ret_config = {PLACEHOLDER_KEY: combinations}
     for shared_value in shared_values:
         ret_config[shared_value] = config[shared_value]
-    
+
     return ret_config
 
 
