@@ -113,7 +113,7 @@ def expand_globs(config, is_test=False):
     """
 
     for d, key, value in IOTools.nested_iter(config):
-        if isinstance(value, str) and not (isinstance(str) and key.endswith("_regex")):
+        if isinstance(value, str) and not (isinstance(key, str) and key.endswith("_regex")):
             if value.startswith("find"):
                 try:
                     data = E.run(value, return_stdout=True)
