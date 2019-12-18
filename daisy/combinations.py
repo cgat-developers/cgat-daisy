@@ -1,4 +1,5 @@
 import re
+import collections
 import itertools
 import pandas
 import cgatcore.iotools
@@ -103,44 +104,64 @@ def build_combinations_from_design_file(config):
 def build_combinations_from_regex(config):
 
     slots = {}
-    all_keys = set()
     to_remove = set()
     for regex_key, regex_pattern in config.items():
         short_key = regex_key[:-len("_regex")]
         if regex_key.endswith("_regex") and short_key in config:
             rx = re.compile(regex_pattern)
             pairs = {}
-            for f in config[short_key]:
+            for filename in config[short_key]:
                 try:
-                    key = "_".join(rx.search(f).groups())
+                    mx = rx.search(filename)
                 except AttributeError as ex:
                     raise ValueError("file {} does not match '{}'".format(
-                        f, regex_pattern))
-                pairs[key] = f
-                all_keys.add(key)
+                        filename, regex_pattern))
+                if len(rx.groupindex) > 0:
+                    key = tuple(mx.groupdict().items())
+                else:
+                    # naive key: position of regexs matches
+                    key = (("key", "_".join(rx.search(filename).groups())), )
+                pairs[key] = filename
             slots[short_key] = pairs
             to_remove.add(short_key)
             to_remove.add(regex_key)
 
-    combinations = []
-    for k in sorted(all_keys):
+    group_keys = collections.defaultdict(set)
+    for slot_key, slot in slots.items():
+        for slotitems, _ in slot.items():
+            for group_key, group_value in slotitems:
+                group_keys[group_key].add(group_value)
+
+    combinations = []                
+    for group_key_combination in itertools.product(*group_keys.values()):
+        param_dict = dict((zip(group_keys.keys(), group_key_combination)))
         combination = {}
+        name = {}
         for slot_key, slot in slots.items():
-            if k not in slot:
-                raise ValueError(
-                    "data set for '{}' misses data point '{}'".format(slot_key, k))
-            combination[slot_key] = slot[k]
-        combination["name"] = k
+            for groups, filename in slot.items():
+                for group_key, group_value in groups:
+                    if group_key not in param_dict:
+                        continue
+                    if group_value != param_dict[group_key]:
+                        break
+                    name[group_key] = group_value
+                else:
+                    combination[slot_key] = filename
+
+        # ignore combos where not all slots could be filled
+        if len(combination) != len(slots):
+            continue
+
+        combination["name"] = "_".join(name.values())
         combinations.append(combination)
-        
+
     ret_config = {PLACEHOLDER_KEY: combinations}
     for k, v in config.items():
         if k not in to_remove:
             ret_config[k] = v
-    
     return ret_config
 
-        
+
 def build_combinations_from_config(config):
 
     # add multiplicity of input files
@@ -225,9 +246,8 @@ def build_combinations(config):
          reference: value11
 
       groupby: label
-    
+
     This translates into:
-    
        - bam/[value1/values2] x reference/value10
        - bam/[value3/values4] x reference/value11
 
@@ -260,7 +280,7 @@ def build_combinations(config):
     if groupby == "file":
         config = build_combinations_from_design_file(config)
         groupby = "option"
-        
+
     if groupby == "regex":
         config = build_combinations_from_regex(config)
         groupby = "option"
@@ -278,6 +298,4 @@ def build_combinations(config):
             c.update(c[PLACEHOLDER_KEY])
             del c[PLACEHOLDER_KEY]
 
-    return combinations
-
-
+    return sorted(combinations, key=lambda x: sorted([k, str(v)] for k, v in x.items()))

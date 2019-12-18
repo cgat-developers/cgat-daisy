@@ -44,7 +44,7 @@ def test_groupby_design(tmp_path):
         outf.write("label2\tvalue1\tvalueB\n")
         outf.write("label3\tvalue2\tvalueA\n")
         outf.write("label4\tvalue2\tvalueB\n")
-    
+
     assert build_combinations(
         {"groupby": "file",
          "label": "label",
@@ -66,7 +66,7 @@ def test_groupby_design_with_constant_option(tmp_path):
         outf.write("label2\tvalue1\tvalueB\n")
         outf.write("label3\tvalue2\tvalueA\n")
         outf.write("label4\tvalue2\tvalueB\n")
-    
+
     assert build_combinations(
         {"groupby": "file",
          "label": "label",
@@ -105,8 +105,8 @@ def test_groupby_design_with_combinatorial_option(tmp_path):
           {'option1': 'value2', 'option2': 'valueA', "name": "label3", "option3": "valueY"},
           {'option1': 'value2', 'option2': 'valueB', "name": "label4", "option3": "valueX"},
           {'option1': 'value2', 'option2': 'valueB', "name": "label4", "option3": "valueY"}]
-    
-    
+
+
 def test_groupby_regex(tmp_path):
 
     assert build_combinations(
@@ -125,16 +125,18 @@ def test_groupby_regex(tmp_path):
           'name': "1"}]
 
 
-def test_groupby_regex_raises_when_datapoint_missing(tmp_path):
-    with pytest.raises(ValueError):
-        build_combinations(
-            {"groupby": "regex",
-             "files_a": ["{}/data_0.a".format(tmp_path)],
-             "files_b": ["{}/data_0.b".format(tmp_path),
-                         "{}/data_1.b".format(tmp_path)],
-             "files_a_regex": r"data_(\d+).a",
-             "files_b_regex": r"data_(\d+).b"})
-    
+def test_groupby_regex_filters_when_data_point_missing(tmp_path):
+    assert build_combinations(
+        {"groupby": "regex",
+         "files_a": ["{}/data_0.a".format(tmp_path)],
+         "files_b": ["{}/data_0.b".format(tmp_path),
+                     "{}/data_1.b".format(tmp_path)],
+         "files_a_regex": r"data_(\d+).a",
+         "files_b_regex": r"data_(\d+).b"}) == \
+        [{'files_a': "{}/data_0.a".format(tmp_path),
+          'files_b': "{}/data_0.b".format(tmp_path),
+          'name': "0"}]
+
 
 def test_groupby_regex_with_constant(tmp_path):
 
@@ -188,4 +190,47 @@ def test_groupby_regex_with_combinatorial_option(tmp_path):
              'files_x': "z.x",
              'name': "1"},
         ]
-    
+
+
+def test_groupby_named_regex(tmp_path):
+
+    assert build_combinations(
+        {"groupby": "regex",
+         "files_a": ["{}/data_0.a".format(tmp_path),
+                     "{}/data_1.a".format(tmp_path)],
+         "files_b": ["{}/data_0.b".format(tmp_path),
+                     "{}/data_1.b".format(tmp_path)],
+         "files_a_regex": r"data_(?P<key1>\d+).a",
+         "files_b_regex": r"data_(?P<key1>\d+).b"}) == \
+        [{'files_a': "{}/data_0.a".format(tmp_path),
+          'files_b': "{}/data_0.b".format(tmp_path),
+          'name': "0"},
+         {'files_a': "{}/data_1.a".format(tmp_path),
+          'files_b': "{}/data_1.b".format(tmp_path),
+          'name': "1"}]
+
+
+def test_groupby_named_regex_paired(tmp_path):
+
+    assert build_combinations(
+        {"groupby": "regex",
+         "files_a": ["{}/data_0_2.a".format(tmp_path),
+                     "{}/data_0_3.a".format(tmp_path),
+                     "{}/data_1_2.a".format(tmp_path),
+                     "{}/data_1_3.a".format(tmp_path)],
+         "files_b": ["{}/data_0.b".format(tmp_path),
+                     "{}/data_1.b".format(tmp_path)],
+         "files_a_regex": r"data_(?P<key1>\d+)_(?P<key2>\d+).a",
+         "files_b_regex": r"data_(?P<key1>\d+).b"}) == \
+        [{'files_a': "{}/data_0_2.a".format(tmp_path),
+          'files_b': "{}/data_0.b".format(tmp_path),
+          'name': "0_2"},
+         {'files_a': "{}/data_0_3.a".format(tmp_path),
+          'files_b': "{}/data_0.b".format(tmp_path),
+          'name': "0_3"},
+         {'files_a': "{}/data_1_2.a".format(tmp_path),
+          'files_b': "{}/data_1.b".format(tmp_path),
+          'name': "1_2"},
+         {'files_a': "{}/data_1_3.a".format(tmp_path),
+          'files_b': "{}/data_1.b".format(tmp_path),
+          'name': "1_3"}]
