@@ -327,7 +327,11 @@ def save_benchmark_timings(path, tablename, engine, instance, schema,
             "file {} does not exist, no tool timings uploaded".format(
                 fn))
     else:
-        tool_bench_data = pandas.read_csv(fn, sep="\t")
+        try:
+            tool_bench_data = pandas.read_csv(fn, sep="\t")
+        except pandas.errors.EmptyDataError:
+            P.get_logger().warn(f"file {fn} is empty, no tool timings uploaded")
+            return
         tool_bench_data["instance_id"] = instance.id
         save_table(tool_bench_data, engine,
                    tablename,
