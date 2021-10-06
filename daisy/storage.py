@@ -16,15 +16,16 @@ API
 import os
 import sys
 import json
-import datetime
-import collections
-import pandas
-import pandas.io.sql
 import re
 import glob
+import datetime
+import collections
+import pathlib
+import pandas
+import pandas.io.sql
 
 import sqlalchemy
-from sqlalchemy.engine import reflection
+from sqlalchemy import inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, text, \
@@ -36,9 +37,10 @@ from sqlalchemy.exc import OperationalError
 
 import cgatcore.pipeline as P
 import cgatcore.iotools as IOTools
+import cgatcore.experiment as E
 
 from daisy.toolkit import touch, read_data, hash
-import cgatcore.experiment as E
+
 
 ######################################################
 # Database schema
@@ -171,7 +173,7 @@ def get_columns(tablename, engine):
 def sql_sanitize_columns(columns):
 
     # special chars
-    columns = [re.sub("[\[\]().,:]", "_", str(x)) for x in columns]
+    columns = [re.sub(r"[\[\]().,:]", "_", str(x)) for x in columns]
 
     columns = [re.sub("%", "percent", x)
                for x in columns]
@@ -230,6 +232,7 @@ def save_table(table, engine, tablename, schema=None,
     tablename = tablename.lower()
     create_index = False
 
+    insp = inspect(engine)
     if schema is not None:
         # for postgres tables within a schema, engine.has_table does
         # not work. A solution would be to set the search_path within
@@ -255,7 +258,7 @@ def save_table(table, engine, tablename, schema=None,
                          dtype=dtypes,
                          chunksize=sql_chunk_size)
 
-    elif engine.has_table(tablename, schema):
+    elif insp.has_table(tablename, schema):
 
         existing_columns = set(get_columns(tablename, engine))
         proposed_columns = set(table.columns)
@@ -521,6 +524,245 @@ def transform_table_before_upload(tablename, table, instance, meta_data, table_c
     return tablename, table, dtypes
 
 
+def divine_paths(infile):
+    """find tool/metric paths for infile"""
+
+    # walk up the path to find "benchmark.info" as it might be
+    # located on a higher level if the tool output multiple files.
+    parts = list(pathlib.Path(os.path.dirname(infile)).parts)
+    info_paths = []
+    rootdir = os.getcwd()
+    while parts:
+        p = os.path.join(*parts)
+        if p == rootdir:
+            break
+        if os.path.exists(os.path.join(p, "benchmark.info")):
+            info_paths.append(p)
+        parts.pop()
+    info_paths = info_paths[::-1]
+
+    # the level of nesting determines the layout:
+    # 1 level: aggregation: tool == metric
+    # 2 levels: tool + metric
+    # 3 levels: tool + split + metric
+    if len(info_paths) not in (1, 2, 3):
+        raise ValueError(
+            "for {}, expected two or three paths with info, "
+            "got {}".format(infile, len(info_paths)))
+
+    meta_data = {}
+
+    if len(info_paths) == 1:
+        tool_dir = metric_dir = info_paths[0]
+        split_dir = None
+    elif len(info_paths) == 2:
+        tool_dir, metric_dir = info_paths
+        split_dir = None
+        # If there are multiple output files in aggregation, use
+        # intermediate paths as split_subset factors.
+        td = len(tool_dir.split(os.sep))
+        tm = len(metric_dir.split(os.sep))
+        delta = tm - td
+        if delta > 1:
+            meta_data["split_subset"] = re.sub(
+                ".dir", "", os.sep.join(metric_dir.split(os.sep)[td:-1]))
+    elif len(info_paths) == 3:
+        tool_dir, split_dir, metric_dir = info_paths
+
+    if tool_dir:
+        md = read_data(os.path.join(tool_dir, "benchmark.info"),
+                       prefix="tool_")
+        if "tool_action" in md:
+            assert md["tool_action"] == "tool"
+        meta_data.update(md)
+
+    if metric_dir:
+        md = read_data(os.path.join(metric_dir, "benchmark.info"),
+                       prefix="metric_")
+        if "metric_action" in md:
+            # ignore splits, they will be added through metrics
+            if md["metric_action"] == "split":
+                return None, None, None
+            assert md["metric_action"] == "metric", \
+                "action for metric info {} is not 'metric', but '{}'" \
+                .format(os.path.join(metric_dir, "benchmark.info"),
+                        md["metric_action"])
+        meta_data.update(md)
+
+    if split_dir:
+        md = read_data(os.path.join(split_dir, "benchmark.info"),
+                       prefix="split_")
+        if "split_action" in md:
+            assert d["split_action"] == "split"
+        meta_data.update(md)
+        subset = os.path.basename(
+            os.path.dirname(info_paths[-1]))
+        if subset.endswith(".dir"):
+            subset = subset[:-len(".dir")]
+        meta_data["split_subset"] = subset
+
+    return tool_dir, metric_dir, meta_data
+
+
+def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
+
+    metric_table_filter = None
+    if "metric_no_upload" in meta_data:
+        if meta_data["metric_no_upload"] == "*":
+            logger.warn("upload turned off for metric {}".format(
+                meta_data["metric_name"]))
+            return
+        else:
+            metric_table_filter = re.compile(meta_data["metric_no_upload"])
+
+    # multiple tablenames for multiple metric output
+    #
+    # Tables are added into schemas to avoid cluttering
+    # the public namespace.
+    # (if only blobs, no metric output file)
+    if "metric_output_files" in meta_data:
+        assert len(meta_data["metric_output_files"]) == \
+            len(meta_data["metric_tablenames"])
+
+        for output_file, tablename in zip(
+                meta_data["metric_output_files"],
+                meta_data["metric_tablenames"]):
+
+            if metric_table_filter and metric_table_filter.search(tablename):
+                logger.warn("upload for table {} turned off".format(
+                    tablename))
+                continue
+
+            if not os.path.exists(output_file):
+                logger.warning("output file {} does not exist - ignored".format(
+                    output_file))
+                continue
+
+            if IOTools.is_empty(output_file):
+                logger.warn("output file {} is empty - ignored".format(
+                    output_file))
+                continue
+
+            try:
+                table = pandas.read_csv(output_file,
+                                        sep="\t",
+                                        comment="#",
+                                        skip_blank_lines=True)
+            except ValueError as e:
+                logger.warn("table {} can not be read: {}".format(
+                    output_file, str(e)))
+                continue
+            except pandas.parser.CParserError as e:
+                logger.warn("malformatted table {} can not be read: {}".format(
+                    output_file, str(e)))
+                continue
+
+            if len(table) == 0:
+                logger.warn("table {} is empty - ignored".format(output_file))
+                continue
+
+            tablename, table, dtypes = transform_table_before_upload(tablename,
+                                                                     table,
+                                                                     instance,
+                                                                     meta_data,
+                                                                     table_cache)
+
+            if schema is None:
+                tn = tablename
+            else:
+                tn = "{}.{}".format(schema, tablename)
+
+            logger.debug("saving data from {} to table {}".format(output_file, tn))
+            # add foreign key
+            table["instance_id"] = instance.id
+            table_cache.add_table(table, tablename, dtypes)
+
+    if "metric_blob_globs" in meta_data:
+        metric_dir = meta_data["metric_outdir"]
+        files = [glob.glob(os.path.join(metric_dir, x))
+                 for x in meta_data["metric_blob_globs"]]
+        files = IOTools.flatten(files)
+        logger.debug(
+            "uploading binary data in {} files from {} to "
+            "table binary_data".format(len(files), metric_dir))
+        table = []
+        for fn in files:
+            with IOTools.open_file(fn, "rb", encoding=None) as inf:
+                data_row = BenchmarkBinaryData(
+                    instance_id=instance.id,
+                    filename=os.path.basename(fn),
+                    path=fn,
+                    data=inf.read())
+                session.add(data_row)
+            session.commit()
+
+    if meta_data.get("metric_tableindices", None):
+        table_cache.add_indices(meta_data["metric_tableindices"])
+
+
+def upload_metric(infile, benchmark_run, session, schema, table_cache, is_sqlite3, engine,
+                  tool_dirs, logger):
+    # tool_dirs shared across everything
+    tool_dir, metric_dir, meta_data = divine_paths(infile)
+
+    if meta_data is None:
+        return
+
+    # tool_input_files can either be a dictionary if a tool
+    # or a simple list if aggregation.
+    try:
+        tool_input_files = [x["path"] for x in meta_data["tool_input_files"]]
+    except TypeError:
+        tool_input_files = meta_data["tool_input_files"]
+
+    try:
+        instance = BenchmarkInstance(
+            run_id=benchmark_run.id,
+            replication_id=meta_data.get("tool_replication_id", 1),
+            completed=datetime.datetime.fromtimestamp(
+                os.path.getmtime(infile)),
+            input=",".join(tool_input_files),
+            input_alias=meta_data["tool_input_alias"],
+            tool_name=meta_data["tool_name"],
+            tool_version=meta_data["tool_version"],
+            tool_options=meta_data["tool_options"],
+            tool_hash=meta_data["tool_option_hash"],
+            tool_alias=meta_data.get("tool_alias", ""),
+            metric_name=meta_data["metric_name"],
+            metric_version=meta_data["metric_version"],
+            metric_options=meta_data["metric_options"],
+            metric_hash=meta_data["metric_option_hash"],
+            metric_alias=meta_data.get("metric_alias", ""),
+            split_name=meta_data.get("split_name", ""),
+            split_version=meta_data.get("split_version", ""),
+            split_options=meta_data.get("split_options", ""),
+            split_hash=meta_data.get("split_option_hash", ""),
+            split_alias=meta_data.get("split_alias", ""),
+            split_subset=meta_data.get("split_subset", "all"),
+            meta_data=json.dumps(meta_data))
+    except KeyError as e:
+        raise KeyError("missing required attribute {} in meta_data: {}".format(
+            str(e), str(meta_data)))
+
+    session.add(instance)
+    session.commit()
+
+    # avoid multiple upload of tool data
+    if tool_dir and tool_dir not in tool_dirs:
+        tool_dirs.add(tool_dir)
+        save_benchmark_timings(tool_dir,
+                               "tool_timings",
+                               engine, instance, schema,
+                               is_sqlite3)
+
+    save_benchmark_timings(metric_dir,
+                           "metric_timings",
+                           engine, instance, schema,
+                           is_sqlite3)
+
+    save_metric_data(meta_data, logger, table_cache, schema, instance, session)
+
+
 def upload_result(infiles, outfile, *extras):
     """upload results into database.
 
@@ -628,235 +870,12 @@ def upload_result(infiles, outfile, *extras):
     session.commit()
 
     tool_dirs = set()
-
     table_cache = TableCache(engine, schema, is_sqlite3)
 
     for infile in infiles:
-
-        path, name = os.path.split(infile)
-
-        # walk up the path to find "benchmark.info" as it might be
-        # located on a higher level if the tool output multiple files.
-        parts = path.split(os.sep)
-
-        info_paths = []
-        rootdir = os.getcwd()
-        while len(parts):
-            p = os.path.join(*parts)
-            if p == rootdir:
-                break
-            if os.path.exists(os.path.join(p, "benchmark.info")):
-                info_paths.append(p)
-            parts.pop()
-        info_paths = info_paths[::-1]
-
-        # the level of nesting determines the layout:
-        # 1 level: aggregation: tool == metric
-        # 2 levels: tool + metric
-        # 3 levels: tool + split + metric
-        if len(info_paths) not in (1, 2, 3):
-            raise ValueError(
-                "for {}, expected two or three paths with info, "
-                "got {}".format(infile, len(info_paths)))
-
-        meta_data = {}
-
-        if len(info_paths) == 1:
-            tool_dir = metric_dir = info_paths[0]
-            split_dir = None
-        elif len(info_paths) == 2:
-            tool_dir, metric_dir = info_paths
-            split_dir = None
-            # If there are multiple output files in aggregation, use
-            # intermediate paths as split_subset factors.
-            td = len(tool_dir.split(os.sep))
-            tm = len(metric_dir.split(os.sep))
-            d = tm - td
-            if d > 1:
-                meta_data["split_subset"] = re.sub(
-                    ".dir", "",
-                    os.sep.join(
-                        metric_dir.split(os.sep)[td:-1]))
-        elif len(info_paths) == 3:
-            tool_dir, split_dir, metric_dir = info_paths
-
-        if tool_dir:
-            d = read_data(os.path.join(tool_dir, "benchmark.info"),
-                          prefix="tool_")
-            if "tool_action" in d:
-                assert d["tool_action"] == "tool"
-            meta_data.update(d)
-
-        if metric_dir:
-            d = read_data(os.path.join(metric_dir, "benchmark.info"),
-                          prefix="metric_")
-            if "metric_action" in d:
-                # ignore splits, they will be added through metrics
-                if d["metric_action"] == "split":
-                    continue
-                assert d["metric_action"] == "metric", \
-                    "action for metric info {} is not 'metric', but '{}'" \
-                    .format(os.path.join(metric_dir, "benchmark.info"),
-                            d["metric_action"])
-
-        meta_data.update(d)
-
-        if split_dir:
-            d = read_data(os.path.join(split_dir, "benchmark.info"),
-                          prefix="split_")
-            if "split_action" in d:
-                assert d["split_action"] == "split"
-            meta_data.update(d)
-            subset = os.path.basename(
-                os.path.dirname(info_paths[-1]))
-            if subset.endswith(".dir"):
-                subset = subset[:-len(".dir")]
-            meta_data["split_subset"] = subset
-
-        # tool_input_files can either be a dictionary if a tool
-        # or a simple list if aggregation.
-        try:
-            tool_input_files = [x["path"] for x in meta_data["tool_input_files"]]
-        except TypeError:
-            tool_input_files = meta_data["tool_input_files"]
-
-        try:
-            instance = BenchmarkInstance(
-                run_id=benchmark_run.id,
-                replication_id=meta_data.get("tool_replication_id", 1),
-                completed=datetime.datetime.fromtimestamp(
-                    os.path.getmtime(infile)),
-                input=",".join(tool_input_files),
-                input_alias=meta_data["tool_input_alias"],
-                tool_name=meta_data["tool_name"],
-                tool_version=meta_data["tool_version"],
-                tool_options=meta_data["tool_options"],
-                tool_hash=meta_data["tool_option_hash"],
-                tool_alias=meta_data.get("tool_alias", ""),
-                metric_name=meta_data["metric_name"],
-                metric_version=meta_data["metric_version"],
-                metric_options=meta_data["metric_options"],
-                metric_hash=meta_data["metric_option_hash"],
-                metric_alias=meta_data.get("metric_alias", ""),
-                split_name=meta_data.get("split_name", ""),
-                split_version=meta_data.get("split_version", ""),
-                split_options=meta_data.get("split_options", ""),
-                split_hash=meta_data.get("split_option_hash", ""),
-                split_alias=meta_data.get("split_alias", ""),
-                split_subset=meta_data.get("split_subset", "all"),
-                meta_data=json.dumps(meta_data))
-        except KeyError as e:
-            raise KeyError("missing required attribute {} in {}".format(
-                str(e), str(meta_data)))
-
-        session.add(instance)
-        session.commit()
-
-        # avoid multiple upload of tool data
-        if tool_dir and tool_dir not in tool_dirs:
-            tool_dirs.add(tool_dir)
-            save_benchmark_timings(tool_dir,
-                                   "tool_timings",
-                                   engine, instance, schema,
-                                   is_sqlite3)
-
-        save_benchmark_timings(metric_dir,
-                               "metric_timings",
-                               engine, instance, schema,
-                               is_sqlite3)
-
-        metric_table_filter = None
-        if "metric_no_upload" in meta_data:
-            if meta_data["metric_no_upload"] == "*":
-                logger.warn("upload turned off for metric {}".format(
-                    meta_data["metric_name"]))
-                continue
-            else:
-                metric_table_filter = re.compile(meta_data["metric_no_upload"])
-
-        # multiple tablenames for multiple metric output
-        #
-        # Tables are added into schemas to avoid cluttering
-        # the public namespace.
-        # (if only blobs, no metric output file)
-        if "metric_output_files" in meta_data:
-            assert len(meta_data["metric_output_files"]) == \
-                len(meta_data["metric_tablenames"])
-
-            for output_file, tablename in zip(
-                    meta_data["metric_output_files"],
-                    meta_data["metric_tablenames"]):
-
-                if metric_table_filter and metric_table_filter.search(tablename):
-                    logger.warn("upload for table {} turned off".format(
-                        tablename))
-                    continue
-
-                if not os.path.exists(output_file):
-                    logger.warn("output file {} does not exist - ignored".format(
-                        output_file))
-                    continue
-
-                if IOTools.is_empty(output_file):
-                    logger.warn("output file {} is empty - ignored".format(
-                        output_file))
-                    continue
-
-                try:
-                    table = pandas.read_csv(output_file,
-                                            sep="\t",
-                                            comment="#",
-                                            skip_blank_lines=True)
-                except ValueError as e:
-                    logger.warn("table {} can not be read: {}".format(
-                        output_file, str(e)))
-                    continue
-                except pandas.parser.CParserError as e:
-                    logger.warn("malformatted table {} can not be read: {}".format(
-                        output_file, str(e)))
-                    continue
-
-                if len(table) == 0:
-                    logger.warn("table {} is empty - ignored".format(output_file))
-                    continue
-
-                tablename, table, dtypes = transform_table_before_upload(tablename,
-                                                                         table,
-                                                                         instance,
-                                                                         meta_data,
-                                                                         table_cache)
-
-                if schema is None:
-                    tn = tablename
-                else:
-                    tn = "{}.{}".format(schema, tablename)
-
-                logger.debug("saving data from {} to table {}".format(output_file, tn))
-                # add foreign key
-                table["instance_id"] = instance.id
-                table_cache.add_table(table, tablename, dtypes)
-
-        if "metric_blob_globs" in meta_data:
-            metric_dir = meta_data["metric_outdir"]
-            files = [glob.glob(os.path.join(metric_dir, x))
-                     for x in meta_data["metric_blob_globs"]]
-            files = IOTools.flatten(files)
-            logger.debug(
-                "uploading binary data in {} files from {} to "
-                "table binary_data".format(len(files), metric_dir))
-            table = []
-            for fn in files:
-                with IOTools.open_file(fn, "rb", encoding=None) as inf:
-                    data_row = BenchmarkBinaryData(
-                        instance_id=instance.id,
-                        filename=os.path.basename(fn),
-                        path=fn,
-                        data=inf.read())
-                    session.add(data_row)
-                session.commit()
-
-        if meta_data.get("metric_tableindices", None):
-            table_cache.add_indices(meta_data["metric_tableindices"])
+        upload_metric(infile, benchmark_run, session, schema,
+                      table_cache, is_sqlite3, engine, tool_dirs,
+                      logger)
 
     table_cache.close()
     touch(outfile)
@@ -920,7 +939,7 @@ def purge_run_id(run_id, url, dry_run=False, schemas=None):
     base.prepare()
 
     if schemas is None:
-        insp = reflection.Inspector.from_engine(engine)
+        insp = inspect(engine)
         schemas = insp.get_schema_names()
         # note: default sqlite schema is "main"
         if 'public' in schemas:

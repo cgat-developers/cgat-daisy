@@ -79,6 +79,7 @@ def test_upload(benchmark_layout, tmp_path):
     with db_engine.connect() as conn:
         ins_df = pandas.read_sql("SELECT * FROM instance", conn)
     assert list(ins_df.run_id.unique()) == [1]
+    assert list(ins_df.id) == list(range(1, len(ins_df) + 1))
 
     for metric in metrics:
         with db_engine.connect() as conn:
