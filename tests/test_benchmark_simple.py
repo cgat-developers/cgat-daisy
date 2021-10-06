@@ -99,9 +99,9 @@ class TestBenchmarkSimpleBasicWorkflowShow(TestBenchmarkSimpleBasicWorkflow):
             "--config-file={} "
             "--work-dir={} "
             "--local "
-            "show all".format(                              
+            "show all".format(
                 os.path.join(self.work_dir, "output.log"),
-                os.path.join(os.path.dirname(__file__),self.filename),
+                os.path.join(os.path.dirname(__file__), self.filename),
                 self.work_dir))
 
         p = E.run(statement, return_popen=True)
