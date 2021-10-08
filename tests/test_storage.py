@@ -25,7 +25,7 @@ def benchmark_layout(tmp_path):
                 "input_files": [],
                 "version": "test_version",
                 "options": "test_options",
-                "option_hash": "test_option_hash",  
+                "option_hash": "test_option_hash",
                 "name": name,
                 "input_alias": "test_alias",
                 "output_files": [os.path.join(d, f"{name}.tsv")],
@@ -66,11 +66,10 @@ def test_upload(benchmark_layout, tmp_path):
     db_engine = sqlalchemy.create_engine(db_path)
 
     insp = sqlalchemy.inspect(db_engine)
-    assert insp.get_table_names() == [
+    assert insp.get_table_names() == sorted([
         'binary_data', 'instance',
-        'metric0', 'metric1', 'metric2', 'metric3',
         'metric_storage', 'metric_timings', 'run',
-        'tags', 'tool_timings']
+        'tags', 'tool_timings'] + metrics)
 
     with db_engine.connect() as conn:
         run_df = pandas.read_sql("SELECT * FROM run", conn)
@@ -85,3 +84,11 @@ def test_upload(benchmark_layout, tmp_path):
         with db_engine.connect() as conn:
             df = pandas.read_sql(f"SELECT * FROM {metric}", conn)
         assert len(df) == len(tools)
+
+    with db_engine.connect() as conn:
+        tt_df = pandas.read_sql("SELECT * FROM tool_timings", conn)
+    assert len(tt_df) == len(tools)
+
+    with db_engine.connect() as conn:
+        mt_df = pandas.read_sql("SELECT * FROM metric_timings", conn)
+    assert len(mt_df) == len(metrics) * len(tools)

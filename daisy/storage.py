@@ -13,6 +13,8 @@ API
 
 """
 
+import concurrent.futures
+import functools
 import os
 import sys
 import json
@@ -150,14 +152,15 @@ class BenchmarkBinaryData(Base):
     __table_args__ = (PrimaryKeyConstraint(instance_id, filename),)
 
 
+Session = None
+
+
 def create_database(engine):
 
     # create_all only creates table that are not present
     # so it is save to call repeatedly.
     Base.metadata.create_all(engine)
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session = sessionmaker(bind=engine)()
     session.commit()
 
 
@@ -321,8 +324,7 @@ def save_table(table, engine, tablename, schema=None,
                 logger.warn("could not create index: {}".format(str(ex)))
 
 
-def save_benchmark_timings(path, tablename, engine, instance, schema,
-                           is_sqlite3):
+def save_benchmark_timings(path, tablename, table_cache, instance_id: int):
 
     fn = os.path.join(path, "benchmark.bench")
     if not os.path.exists(fn):
@@ -330,12 +332,9 @@ def save_benchmark_timings(path, tablename, engine, instance, schema,
             "file {} does not exist, no tool timings uploaded".format(
                 fn))
     else:
-        tool_bench_data = pandas.read_csv(fn, sep="\t")
-        tool_bench_data["instance_id"] = instance.id
-        save_table(tool_bench_data, engine,
-                   tablename,
-                   schema=None,
-                   is_sqlite3=is_sqlite3)
+        table = pandas.read_csv(fn, sep="\t")
+        table["instance_id"] = instance_id
+        table_cache.add_table(table, tablename)
 
 
 class TableCache():
@@ -398,17 +397,11 @@ class TableCache():
         if tablename not in self.cache:
             self.cache[tablename] = table
         else:
-            if set(self.cache[tablename].columns) != set(table.columns):
-                raise ValueError(
-                    "column mismatch for {}: "
-                    "table={}, cache={}".format(
-                        tablename,
-                        self.cache[tablename].columns,
-                        table.columns))
+            new_columns = set(table.columns)- set(self.cache[tablename].columns)
+            if new_columns:
+                self.logger.warning(f"additional columns for {tablename}: {new_columns}")
             try:
-                self.cache[tablename] = pandas.concat(
-                    [self.cache[tablename],
-                     table])
+                self.cache[tablename] = pandas.concat([self.cache[tablename], table])
             except AssertionError:
                 raise
 
@@ -445,7 +438,7 @@ class TableCache():
         self.close()
 
 
-def transform_table_before_upload(tablename, table, instance, meta_data, table_cache):
+def transform_table_before_upload(tablename, table, instance_id: int, meta_data, table_cache):
 
     dtypes = None
 
@@ -470,7 +463,7 @@ def transform_table_before_upload(tablename, table, instance, meta_data, table_c
     # upload into a separate table suffixed by instance id
     if "metric_upload_separate" in meta_data:
         if tablename in meta_data["metric_upload_separate"]:
-            tablename = "{}_{}".format(tablename, instance.id)
+            tablename = "{}_{}".format(tablename, instance_id)
 
     # normalize table by factorizing a column and storing its ids
     # in a separate table
@@ -488,7 +481,7 @@ def transform_table_before_upload(tablename, table, instance, meta_data, table_c
                 factor_table = pandas.DataFrame(
                     {column: names,
                      "id": list(range(len(names)))})
-                factor_table["instance_id"] = instance.id
+                factor_table["instance_id"] = instance_id
                 table_cache.add_table(factor_table, tablename + "_factors")
 
     # store table as a matrix
@@ -593,7 +586,7 @@ def divine_paths(infile):
         md = read_data(os.path.join(split_dir, "benchmark.info"),
                        prefix="split_")
         if "split_action" in md:
-            assert d["split_action"] == "split"
+            assert md["split_action"] == "split"
         meta_data.update(md)
         subset = os.path.basename(
             os.path.dirname(info_paths[-1]))
@@ -604,8 +597,9 @@ def divine_paths(infile):
     return tool_dir, metric_dir, meta_data
 
 
-def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
+def save_metric_data(meta_data, table_cache, schema, instance_id: int, session):
 
+    logger = P.get_logger()
     metric_table_filter = None
     if "metric_no_upload" in meta_data:
         if meta_data["metric_no_upload"] == "*":
@@ -643,6 +637,7 @@ def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
                     output_file))
                 continue
 
+            # table = pandas.DataFrame({"values": [1, 2]})
             try:
                 table = pandas.read_csv(output_file,
                                         sep="\t",
@@ -657,13 +652,13 @@ def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
                     output_file, str(e)))
                 continue
 
-            if len(table) == 0:
+            if table.empty:
                 logger.warn("table {} is empty - ignored".format(output_file))
                 continue
 
             tablename, table, dtypes = transform_table_before_upload(tablename,
                                                                      table,
-                                                                     instance,
+                                                                     instance_id,
                                                                      meta_data,
                                                                      table_cache)
 
@@ -674,7 +669,7 @@ def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
 
             logger.debug("saving data from {} to table {}".format(output_file, tn))
             # add foreign key
-            table["instance_id"] = instance.id
+            table["instance_id"] = instance_id
             table_cache.add_table(table, tablename, dtypes)
 
     if "metric_blob_globs" in meta_data:
@@ -689,7 +684,7 @@ def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
         for fn in files:
             with IOTools.open_file(fn, "rb", encoding=None) as inf:
                 data_row = BenchmarkBinaryData(
-                    instance_id=instance.id,
+                    instance_id=instance_id,
                     filename=os.path.basename(fn),
                     path=fn,
                     data=inf.read())
@@ -700,67 +695,100 @@ def save_metric_data(meta_data, logger, table_cache, schema, instance, session):
         table_cache.add_indices(meta_data["metric_tableindices"])
 
 
-def upload_metric(infile, benchmark_run, session, schema, table_cache, is_sqlite3, engine,
-                  tool_dirs, logger):
-    # tool_dirs shared across everything
-    tool_dir, metric_dir, meta_data = divine_paths(infile)
+def generate_metrics(infiles, session, run_id):
 
-    if meta_data is None:
-        return
+    tool_dirs = set()
+    for infile in infiles:
+        tool_dir, metric_dir, meta_data = divine_paths(infile)
 
-    # tool_input_files can either be a dictionary if a tool
-    # or a simple list if aggregation.
-    try:
-        tool_input_files = [x["path"] for x in meta_data["tool_input_files"]]
-    except TypeError:
-        tool_input_files = meta_data["tool_input_files"]
+        if meta_data is None:
+            continue
 
-    try:
-        instance = BenchmarkInstance(
-            run_id=benchmark_run.id,
-            replication_id=meta_data.get("tool_replication_id", 1),
-            completed=datetime.datetime.fromtimestamp(
-                os.path.getmtime(infile)),
-            input=",".join(tool_input_files),
-            input_alias=meta_data["tool_input_alias"],
-            tool_name=meta_data["tool_name"],
-            tool_version=meta_data["tool_version"],
-            tool_options=meta_data["tool_options"],
-            tool_hash=meta_data["tool_option_hash"],
-            tool_alias=meta_data.get("tool_alias", ""),
-            metric_name=meta_data["metric_name"],
-            metric_version=meta_data["metric_version"],
-            metric_options=meta_data["metric_options"],
-            metric_hash=meta_data["metric_option_hash"],
-            metric_alias=meta_data.get("metric_alias", ""),
-            split_name=meta_data.get("split_name", ""),
-            split_version=meta_data.get("split_version", ""),
-            split_options=meta_data.get("split_options", ""),
-            split_hash=meta_data.get("split_option_hash", ""),
-            split_alias=meta_data.get("split_alias", ""),
-            split_subset=meta_data.get("split_subset", "all"),
-            meta_data=json.dumps(meta_data))
-    except KeyError as e:
-        raise KeyError("missing required attribute {} in meta_data: {}".format(
-            str(e), str(meta_data)))
+        # tool_input_files can either be a dictionary if a tool
+        # or a simple list if aggregation.
+        try:
+            tool_input_files = [x["path"] for x in meta_data["tool_input_files"]]
+        except TypeError:
+            tool_input_files = meta_data["tool_input_files"]
 
-    session.add(instance)
-    session.commit()
+        try:
+            instance = BenchmarkInstance(
+                run_id=run_id,
+                replication_id=meta_data.get("tool_replication_id", 1),
+                completed=datetime.datetime.fromtimestamp(
+                    os.path.getmtime(infile)),
+                input=",".join(tool_input_files),
+                input_alias=meta_data["tool_input_alias"],
+                tool_name=meta_data["tool_name"],
+                tool_version=meta_data["tool_version"],
+                tool_options=meta_data["tool_options"],
+                tool_hash=meta_data["tool_option_hash"],
+                tool_alias=meta_data.get("tool_alias", ""),
+                metric_name=meta_data["metric_name"],
+                metric_version=meta_data["metric_version"],
+                metric_options=meta_data["metric_options"],
+                metric_hash=meta_data["metric_option_hash"],
+                metric_alias=meta_data.get("metric_alias", ""),
+                split_name=meta_data.get("split_name", ""),
+                split_version=meta_data.get("split_version", ""),
+                split_options=meta_data.get("split_options", ""),
+                split_hash=meta_data.get("split_option_hash", ""),
+                split_alias=meta_data.get("split_alias", ""),
+                split_subset=meta_data.get("split_subset", "all"),
+                meta_data=json.dumps(meta_data))
+        except KeyError as e:
+            raise KeyError("missing required attribute {} in meta_data: {}".format(
+                str(e), str(meta_data)))
 
-    # avoid multiple upload of tool data
-    if tool_dir and tool_dir not in tool_dirs:
-        tool_dirs.add(tool_dir)
+        session.add(instance)
+        session.commit()
+
+        upload_tool_metrics = True
+        if tool_dir:
+            upload_tool_metrics = tool_dir not in tool_dirs
+            if upload_tool_metrics:
+                tool_dirs.add(tool_dir)
+
+        yield(tool_dir, metric_dir, meta_data, instance.id, upload_tool_metrics)
+
+
+def upload_metric(args, table_cache, session, schema):
+
+    tool_dir, metric_dir, meta_data, instance_id, upload_tool_metrics = args
+
+    if upload_tool_metrics:
         save_benchmark_timings(tool_dir,
                                "tool_timings",
-                               engine, instance, schema,
-                               is_sqlite3)
+                               table_cache,
+                               instance_id)
 
     save_benchmark_timings(metric_dir,
                            "metric_timings",
-                           engine, instance, schema,
-                           is_sqlite3)
+                           table_cache,
+                           instance_id)
 
-    save_metric_data(meta_data, logger, table_cache, schema, instance, session)
+    save_metric_data(meta_data, table_cache, schema, instance_id, session)
+
+
+def upload_metrics_tables(infiles: list, run_id: int, schema, session, engine,
+                          max_workers: int = 50):
+
+    is_sqlite3 = True
+    table_cache = TableCache(engine, schema, is_sqlite3)
+
+    upload_metric_f = functools.partial(upload_metric,
+                                        schema=schema,
+                                        table_cache=table_cache,
+                                        session=session)
+
+    E.info("collecting upload items for {len(infiles)} input files")
+    data = list(generate_metrics(infiles, session, run_id))
+    E.info(f"uploading {len(data)} items")
+    if max_workers == 1:
+        result = list(map(upload_metric_f, data))
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            result = executor.map(upload_metric_f, data)
 
 
 def upload_result(infiles, outfile, *extras):
@@ -857,41 +885,34 @@ def upload_result(infiles, outfile, *extras):
         config_hash=hash(json.dumps(config)),
         status="incomplete")
 
-    Session = sessionmaker(bind=engine)
+    session_factory = sessionmaker(bind=engine)
+    Session = scoped_session(session_factory)
     session = Session()
     session.add(benchmark_run)
     session.commit()
 
     for tag in config["tags"]:
-        benchmark_tag = BenchmarkTag(
-            run_id=benchmark_run.id,
-            tag=tag)
+        benchmark_tag = BenchmarkTag(run_id=benchmark_run.id, tag=tag)
         session.add(benchmark_tag)
     session.commit()
 
-    tool_dirs = set()
-    table_cache = TableCache(engine, schema, is_sqlite3)
-
-    for infile in infiles:
-        upload_metric(infile, benchmark_run, session, schema,
-                      table_cache, is_sqlite3, engine, tool_dirs,
-                      logger)
-
-    table_cache.close()
-    touch(outfile)
+    # create metric instances
+    # upload metrics
+    upload_metrics_tables(infiles, benchmark_run.id, schema, session, engine)
+    
+    # table_cache.close()
 
     # upload table sizes
-    df_sizes = pandas.DataFrame.from_records(
-        list(table_cache.uploaded_sizes.items()),
-        columns=["tablename", "bytes_uploaded"])
-    df_sizes["bytes_resident"] = df_sizes.bytes_uploaded
-    df_sizes["run_id"] = benchmark_run.id
-    df_sizes["schema"] = schema
-    save_table(df_sizes,
-               engine,
-               "metric_storage",
-               schema=None,
-               is_sqlite3=is_sqlite3)
+    # df_sizes = pandas.DataFrame.from_records(list(table_cache.uploaded_sizes.items()),
+    #                                          columns=["tablename", "bytes_uploaded"])
+    # df_sizes["bytes_resident"] = df_sizes.bytes_uploaded
+    # df_sizes["run_id"] = benchmark_run.id
+    # df_sizes["schema"] = schema
+    # save_table(df_sizes,
+    #            engine,
+    #            "metric_storage",
+    #            schema=None,
+    #            is_sqlite3=is_sqlite3)
 
     benchmark_run.status = "complete"
     session.commit()
@@ -900,6 +921,7 @@ def upload_result(infiles, outfile, *extras):
     del engine
 
     logger.info("uploaded results under run_id {}".format(benchmark_run.id))
+    touch(outfile)
 
 
 def export_result(infile, outfile, *extras):
