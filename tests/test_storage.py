@@ -10,7 +10,7 @@ from daisy.storage import upload_result
 def benchmark_layout(tmp_path):
 
     ntools = 2
-    nmetrics = 4
+    nmetrics = 4000
 
     tools = [f"tool{x}" for x in range(ntools)]
     metrics = [f"metric{x}" for x in range(nmetrics)]
@@ -52,7 +52,8 @@ def benchmark_layout(tmp_path):
     return outfiles, tools, metrics
 
 
-def test_upload(benchmark_layout, tmp_path):
+@pytest.mark.parametrize("max_workers", [1, 5])
+def test_upload(benchmark_layout, tmp_path, max_workers):
 
     outfiles, tools, metrics = benchmark_layout
     db_path = f"sqlite:///{tmp_path}/csvdb"
@@ -61,7 +62,8 @@ def test_upload(benchmark_layout, tmp_path):
                   {"title": "test",
                    "description": "test",
                    "tags": [],
-                   "database": {"url": db_path}})
+                   "database": {"url": db_path}},
+                  max_workers=max_workers)
 
     db_engine = sqlalchemy.create_engine(db_path)
 

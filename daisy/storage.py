@@ -13,18 +13,18 @@ API
 
 """
 
-import concurrent.futures
-import functools
+import multiprocessing
+from multiprocessing.util import Finalize
 import os
 import sys
 import json
 import re
 import glob
 import datetime
-import collections
 import pathlib
 import pandas
 import pandas.io.sql
+import tqdm
 
 import sqlalchemy
 from sqlalchemy import inspect
@@ -42,6 +42,7 @@ import cgatcore.iotools as IOTools
 import cgatcore.experiment as E
 
 from daisy.toolkit import touch, read_data, hash
+from daisy.table_cache import TableCache
 
 
 ######################################################
@@ -57,10 +58,6 @@ if IS_POSTGRES:
     JSONType = postgresql.JSON
 else:
     JSONType = String
-
-
-RESERVED_WORDS = {
-    "all": "total"}
 
 
 class BenchmarkRun(Base):
@@ -152,9 +149,6 @@ class BenchmarkBinaryData(Base):
     __table_args__ = (PrimaryKeyConstraint(instance_id, filename),)
 
 
-Session = None
-
-
 def create_database(engine):
 
     # create_all only creates table that are not present
@@ -162,166 +156,6 @@ def create_database(engine):
     Base.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
     session.commit()
-
-
-@E.cached_function
-def get_columns(tablename, engine):
-    """return list of column names in table"""
-    metadata = sqlalchemy.MetaData(engine)
-    tb = sqlalchemy.Table(tablename, metadata, autoload=True,
-                          autoload_with=engine)
-    return [x.name for x in tb.columns]
-
-
-def sql_sanitize_columns(columns):
-
-    # special chars
-    columns = [re.sub(r"[\[\]().,:]", "_", str(x)) for x in columns]
-
-    columns = [re.sub("%", "percent", x)
-               for x in columns]
-
-    columns = [x.lower() for x in columns]
-
-    columns = [RESERVED_WORDS.get(x, x) for x in columns]
-    return columns
-
-
-def add_columns_to_table(columns, table, tablename, engine):
-
-    pandas_engine = pandas.io.sql.SQLDatabase(engine)
-    pandas_table = pandas.io.sql.SQLTable(
-        tablename,
-        pandas_engine,
-        frame=table)
-
-    new_columns = set(columns)
-    logger = P.get_logger()
-
-    for column in pandas_table.table.columns:
-        if column.name in new_columns:
-            statement = "ALTER TABLE {} ADD COLUMN {} {}".format(
-                tablename,
-                column.name,
-                column.type)
-
-            logger.debug("SQL: {}".format(statement))
-            engine.execute(statement)
-
-
-def save_table(table, engine, tablename, schema=None,
-               is_sqlite3=False,
-               dtypes=None,
-               indices=["instance_id"]):
-    logger = P.get_logger()
-    table.columns = sql_sanitize_columns(table.columns)
-
-    # pandas/sqlite3 prefers the raw connection, otherwise error:
-    # AttributeError: 'Engine' object has no attribute 'rollback'
-    if is_sqlite3:
-        _engine = engine.raw_connection()
-        # In pandas >= 0.23 and using sqlite as a backend, the
-        # pandas.DataFrame.to_sql command fails with "OperationalError:
-        # (sqlite3.OperationalError) too many SQL variables". The reason is a
-        # fixed limit in sqlite, SQLITE_MAX_VARIABLE_NUMBER, which is by
-        # default set to 999.
-        sql_chunk_size = 999 // (len(table.columns) + 1)
-    else:
-        _engine = engine
-        sql_chunk_size = None
-
-    # lower case all table names. Otherwise issues with psql
-    # mixed case access
-    tablename = tablename.lower()
-    create_index = False
-
-    insp = inspect(engine)
-    if schema is not None:
-        # for postgres tables within a schema, engine.has_table does
-        # not work. A solution would be to set the search_path within
-        # a connection. The code below fails if there is a column
-        # mismatch.
-        # TODO: investigate how to use a connection within pandas.
-        try:
-            # table is new, create index
-            table.to_sql(tablename,
-                         engine,
-                         schema=schema,
-                         if_exists="fail",
-                         index=False,
-                         dtype=dtypes,
-                         chunksize=sql_chunk_size)
-            create_index = True
-        except ValueError:
-            table.to_sql(tablename,
-                         engine,
-                         schema=schema,
-                         if_exists="append",
-                         index=False,
-                         dtype=dtypes,
-                         chunksize=sql_chunk_size)
-
-    elif insp.has_table(tablename, schema):
-
-        existing_columns = set(get_columns(tablename, engine))
-        proposed_columns = set(table.columns)
-
-        obsolete_columns = existing_columns.difference(proposed_columns)
-        if obsolete_columns:
-            logger.warn("the following columns are obsolete in {}: {}. "
-                        "empty data will be inserted"
-                        .format(tablename, ", ".join(obsolete_columns)))
-            # create empty columns
-            for column in obsolete_columns:
-                table[column] = None
-
-        new_columns = proposed_columns.difference(existing_columns)
-        if new_columns:
-            logger.warn("new columns found for {}: the following columns "
-                        "will be added: {} ".format(
-                            tablename,
-                            ", ".join(new_columns)))
-
-            add_columns_to_table(new_columns,
-                                 table,
-                                 tablename,
-                                 engine)
-            # clear cache of memoization function
-            get_columns.delete(tablename, engine)
-
-        # append
-        table.to_sql(tablename,
-                     engine,
-                     schema=schema,
-                     if_exists="append",
-                     index=False,
-                     dtype=dtypes,
-                     chunksize=sql_chunk_size)
-    else:
-        # table is new, create index
-        table.to_sql(tablename,
-                     engine,
-                     schema=schema,
-                     if_exists="fail",
-                     index=False,
-                     dtype=dtypes,
-                     chunksize=sql_chunk_size)
-        create_index = True
-
-    if create_index:
-        # sqlite requires an index name
-        if schema:
-            tablename = "{}.{}".format(schema, tablename)
-
-        for field in indices:
-            try:
-                engine.execute(
-                    text("CREATE INDEX {} ON {} ({})".format(
-                        re.sub("[-.]", "_", tablename) + "_" + field,
-                        tablename,
-                        field)))
-            except sqlalchemy.exc.ProgrammingError as ex:
-                logger.warn("could not create index: {}".format(str(ex)))
 
 
 def save_benchmark_timings(path, tablename, table_cache, instance_id: int):
@@ -335,107 +169,6 @@ def save_benchmark_timings(path, tablename, table_cache, instance_id: int):
         table = pandas.read_csv(fn, sep="\t")
         table["instance_id"] = instance_id
         table_cache.add_table(table, tablename)
-
-
-class TableCache():
-
-    # 1 Gb
-    max_total_bytes = 1e9
-    # 50 Mb
-    max_table_bytes = 5e7
-
-    def __init__(self, engine, schema, is_sqlite3):
-        self.engine = engine
-        self.schema = schema
-        self.cache = {}
-
-        self.is_sqlite3 = is_sqlite3
-        self.total_size = 0
-        self.sizes = collections.defaultdict(int)
-        self.uploaded_sizes = collections.defaultdict(int)
-        self.dtypes = {}
-        self.logger = P.get_logger()
-        self.indices = {}
-        self.have_created_indices = False
-
-    def flush_table(self, tablename):
-
-        table = self.cache[tablename]
-
-        self.logger.debug("uploading table {}: {} bytes".format(
-            tablename,
-            self.sizes[tablename]))
-        save_table(table,
-                   self.engine,
-                   tablename,
-                   self.schema,
-                   is_sqlite3=self.is_sqlite3,
-                   dtypes=self.dtypes.get(tablename, None))
-        del table
-        del self.cache[tablename]
-        self.uploaded_sizes[tablename] += self.sizes[tablename]
-        self.sizes[tablename] = 0
-
-    def flush_all(self):
-        for tablename in list(self.cache.keys()):
-            self.flush_table(tablename)
-
-        self.total_size = 0
-        self.cache = {}
-        self.sizes = collections.defaultdict(int)
-
-    def add_indices(self, indices):
-        self.indices.update(indices)
-
-    def add_table(self, table, tablename, dtypes=None):
-
-        memory_usage = sum(table.memory_usage(deep=True))
-        self.total_size += memory_usage
-        self.sizes[tablename] += memory_usage
-        self.dtypes[tablename] = dtypes
-
-        if tablename not in self.cache:
-            self.cache[tablename] = table
-        else:
-            new_columns = set(table.columns)- set(self.cache[tablename].columns)
-            if new_columns:
-                self.logger.warning(f"additional columns for {tablename}: {new_columns}")
-            try:
-                self.cache[tablename] = pandas.concat([self.cache[tablename], table])
-            except AssertionError:
-                raise
-
-        if self.total_size > self.max_total_bytes:
-            self.logger.debug(
-                "force full cache flush, memory usage = {}".format(
-                    self.total_size))
-            self.flush_all()
-
-        if self.sizes[tablename] > self.max_table_bytes:
-            self.logger.debug(
-                "force cache flush for table {}, memory usage = {}".format(
-                    tablename,
-                    self.sizes[tablename]))
-
-            self.flush_table(tablename)
-
-    def close(self):
-        self.flush_all()
-
-        if not self.have_created_indices:
-            for index_name, info in self.indices.items():
-                table_name, fields = info
-                self.logger.debug("creating index {} on {} and fields {}".format(
-                    index_name, table_name, fields))
-                try:
-                    self.engine.execute("CREATE INDEX {} ON {} ({})".format(
-                        index_name, table_name, fields))
-                except sqlalchemy.exc.OperationalError as ex:
-                    self.logger.warn("could not create index: {}".format(str(ex)))
-            self.have_created_indices = True
-
-    def __del__(self):
-        self.close()
 
 
 def transform_table_before_upload(tablename, table, instance_id: int, meta_data, table_cache):
@@ -563,10 +296,11 @@ def divine_paths(infile):
         tool_dir, split_dir, metric_dir = info_paths
 
     if tool_dir:
-        md = read_data(os.path.join(tool_dir, "benchmark.info"),
-                       prefix="tool_")
-        if "tool_action" in md:
-            assert md["tool_action"] == "tool"
+        md = read_data(os.path.join(tool_dir, "benchmark.info"), prefix="tool_")
+        if "tool_action" in md and md["tool_action"] != "tool":
+            raise ValueError("action for tool info {} is not 'tool', but '{}'".format(
+                os.path.join(metric_dir, "benchmark.info"),
+                md["tool_action"]))
         meta_data.update(md)
 
     if metric_dir:
@@ -576,20 +310,20 @@ def divine_paths(infile):
             # ignore splits, they will be added through metrics
             if md["metric_action"] == "split":
                 return None, None, None
-            assert md["metric_action"] == "metric", \
-                "action for metric info {} is not 'metric', but '{}'" \
-                .format(os.path.join(metric_dir, "benchmark.info"),
-                        md["metric_action"])
+            if md["metric_action"] != "metric":
+                return tool_dir, None, None
         meta_data.update(md)
 
     if split_dir:
         md = read_data(os.path.join(split_dir, "benchmark.info"),
                        prefix="split_")
-        if "split_action" in md:
-            assert md["split_action"] == "split"
+        if "split_action" in md and md["split_action"] != "split":
+            raise ValueError("action for split info {} is not 'split', but '{}'".format(
+                os.path.join(metric_dir, "benchmark.info"),
+                md["split_action"]))
+
         meta_data.update(md)
-        subset = os.path.basename(
-            os.path.dirname(info_paths[-1]))
+        subset = os.path.basename(os.path.dirname(info_paths[-1]))
         if subset.endswith(".dir"):
             subset = subset[:-len(".dir")]
         meta_data["split_subset"] = subset
@@ -667,9 +401,9 @@ def save_metric_data(meta_data, table_cache, schema, instance_id: int, session):
             else:
                 tn = "{}.{}".format(schema, tablename)
 
-            logger.debug("saving data from {} to table {}".format(output_file, tn))
             # add foreign key
             table["instance_id"] = instance_id
+            logger.debug(f"saving data {table.shape} from {output_file} to table {tn} under {instance_id}")
             table_cache.add_table(table, tablename, dtypes)
 
     if "metric_blob_globs" in meta_data:
@@ -695,11 +429,10 @@ def save_metric_data(meta_data, table_cache, schema, instance_id: int, session):
         table_cache.add_indices(meta_data["metric_tableindices"])
 
 
-def generate_metrics(infiles, session, run_id):
+def instantiate_metrics(metrics, session, run_id):
 
     tool_dirs = set()
-    for infile in infiles:
-        tool_dir, metric_dir, meta_data = divine_paths(infile)
+    for tool_dir, metric_dir, meta_data, mtime in metrics:
 
         if meta_data is None:
             continue
@@ -715,8 +448,7 @@ def generate_metrics(infiles, session, run_id):
             instance = BenchmarkInstance(
                 run_id=run_id,
                 replication_id=meta_data.get("tool_replication_id", 1),
-                completed=datetime.datetime.fromtimestamp(
-                    os.path.getmtime(infile)),
+                completed=datetime.datetime.fromtimestamp(mtime),
                 input=",".join(tool_input_files),
                 input_alias=meta_data["tool_input_alias"],
                 tool_name=meta_data["tool_name"],
@@ -749,49 +481,123 @@ def generate_metrics(infiles, session, run_id):
             if upload_tool_metrics:
                 tool_dirs.add(tool_dir)
 
+        assert instance.id is not None
         yield(tool_dir, metric_dir, meta_data, instance.id, upload_tool_metrics)
 
 
-def upload_metric(args, table_cache, session, schema):
+def generate_metric(infile):
 
+    tool_dir, metric_dir, meta_data = divine_paths(infile)
+
+    return tool_dir, metric_dir, meta_data, os.path.getmtime(infile)
+
+
+# global variables for multiprocessing
+resource = None
+
+
+class Resource(object):
+    def __init__(self, args):
+        self.args = args
+
+    def __enter__(self):
+        table_cache = TableCache(*self.args)
+        E.info(f"{os.getpid()}: created resource={id(self)}: cache={id(table_cache)}")
+        self.table_cache = table_cache
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        E.info(f"{os.getpid()}: resource={id(self)}: final table cache flush for cache={id(self.table_cache)} started")
+        E.info(f"{os.getpid()}: resource={id(self)}: cache={id(self.table_cache)}: "
+               f"{self.table_cache.get_cache_stats()}")
+        self.table_cache.flush_all()
+        E.info(f"{os.getpid()}: resource={id(self)}: final table cache flush "
+               f"for cache={id(self.table_cache)} completed")
+
+
+def open_resource(args):
+    return Resource(args)
+
+
+def upload_metric(args):
     tool_dir, metric_dir, meta_data, instance_id, upload_tool_metrics = args
 
     if upload_tool_metrics:
         save_benchmark_timings(tool_dir,
                                "tool_timings",
-                               table_cache,
+                               upload_metric.table_cache,
                                instance_id)
 
     save_benchmark_timings(metric_dir,
                            "metric_timings",
-                           table_cache,
+                           upload_metric.table_cache,
                            instance_id)
 
-    save_metric_data(meta_data, table_cache, schema, instance_id, session)
+    E.info(f"{os.getpid()}: adding metrics for instance_id {instance_id} to cache={id(upload_metric.table_cache)}")
+    save_metric_data(meta_data,
+                     upload_metric.table_cache,
+                     upload_metric.schema,
+                     instance_id,
+                     upload_metric.session)
+
+
+def setup_worker(f, *args):
+
+    global resource
+
+    engine, schema, is_sqlite = args
+    engine.dispose()
+    f.schema = schema
+    Session = sessionmaker(bind=engine)
+    f.session = Session()
+
+    resource_cm = open_resource(args)
+    E.info(f"{os.getpid()}: setting up worker for resource={id(resource)}")
+    old_resource = resource
+    resource = resource_cm.__enter__()
+    E.info(f"{os.getpid()}: new worker for resource={id(resource)} (old_resource={id(old_resource)})")
+
+    # Register a finalizer to flush table cache
+    Finalize(resource, resource.__exit__, exitpriority=16)
+
+    E.info(f"{os.getpid()}: adding cache={id(resource.table_cache)} from resource={id(resource)} "
+           f"to worker={id(f)}, session={id(f.session)}")
+    f.table_cache = resource.table_cache
 
 
 def upload_metrics_tables(infiles: list, run_id: int, schema, session, engine,
-                          max_workers: int = 50):
+                          max_workers: int = 10):
 
     is_sqlite3 = True
-    table_cache = TableCache(engine, schema, is_sqlite3)
 
-    upload_metric_f = functools.partial(upload_metric,
-                                        schema=schema,
-                                        table_cache=table_cache,
-                                        session=session)
+    E.info(f"{os.getpid()}: collecting upload items for {len(infiles)} input files")
+    metric_f = generate_metric
+    pool = multiprocessing.Pool(max_workers)
+    metrics = pool.map(metric_f, infiles)
+    pool.close()
+    pool.join()
 
-    E.info("collecting upload items for {len(infiles)} input files")
-    data = list(generate_metrics(infiles, session, run_id))
-    E.info(f"uploading {len(data)} items")
+    E.info(f"{os.getpid()}: instantiating {len(metrics)} metrics")
+    data = list(tqdm.tqdm(instantiate_metrics(metrics, session, run_id),
+                          total=len(metrics)))
+
+    E.info(f"{os.getpid()}: uploading {len(data)} items")
+    upload_f = upload_metric
+    initargs = (upload_f, engine, schema, is_sqlite3)
     if max_workers == 1:
-        result = list(map(upload_metric_f, data))
+        setup_worker(*initargs)
+        result = list(map(upload_f, data))
+        global resource
+        resource.table_cache.flush_all()
     else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            result = executor.map(upload_metric_f, data)
+        E.info(f"{os.getpid()}: loading data with {max_workers} cores")
+        pool = multiprocessing.Pool(max_workers, initializer=setup_worker, initargs=initargs)
+        pool.map(upload_f, data)
+        pool.close()
+        pool.join()
 
 
-def upload_result(infiles, outfile, *extras):
+def upload_result(infiles, outfile, *extras, max_workers: int = 10):
     """upload results into database.
 
     Connection details for the database are taken from the
@@ -871,6 +677,9 @@ def upload_result(infiles, outfile, *extras):
     else:
         created = datetime.datetime.now()
 
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
     benchmark_run = BenchmarkRun(
         author=os.environ.get("USER", "unknown"),
         # needs refactoring, should be: uploaded_at, created_at, run_at
@@ -885,22 +694,17 @@ def upload_result(infiles, outfile, *extras):
         config_hash=hash(json.dumps(config)),
         status="incomplete")
 
-    session_factory = sessionmaker(bind=engine)
-    Session = scoped_session(session_factory)
-    session = Session()
     session.add(benchmark_run)
     session.commit()
 
     for tag in config["tags"]:
         benchmark_tag = BenchmarkTag(run_id=benchmark_run.id, tag=tag)
         session.add(benchmark_tag)
+
     session.commit()
 
-    # create metric instances
-    # upload metrics
-    upload_metrics_tables(infiles, benchmark_run.id, schema, session, engine)
-    
-    # table_cache.close()
+    upload_metrics_tables(infiles, benchmark_run.id, schema, session, engine,
+                          max_workers=max_workers)
 
     # upload table sizes
     # df_sizes = pandas.DataFrame.from_records(list(table_cache.uploaded_sizes.items()),
