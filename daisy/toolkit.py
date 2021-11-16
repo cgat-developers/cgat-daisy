@@ -15,7 +15,6 @@ import re
 import cgatcore.iotools as IOTools
 import cgatcore.experiment as E
 import cgatcore.pipeline as P
-# import daisy.Arvados as Arvados
 
 
 def run(command, return_stderr=False, **kwargs):
@@ -176,9 +175,10 @@ def redirect2mounts(config,
                     d[key] = re.sub("arv=", mountpoint, value)
 
         if do_mount:
-            if not Arvados.have_arvados():
-                raise ValueError(
-                    "config file requires arvados access, but arvados not available")
+            raise NotImplementedError("arvados support disabled")
+            # if not arvados.have_arvados():
+            #     raise ValueError(
+            #         "config file requires arvados access, but arvados not available")
             arvados_options = " ".join(arvados_options)
             E.debug("redirect2mounts: mounting arvados at {} with options {}".format(
                 mountpoint, arvados_options))

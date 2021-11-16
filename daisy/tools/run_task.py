@@ -43,7 +43,6 @@ import shutil
 import signal
 import cgatcore.experiment as E
 import cgatcore.pipeline as P
-# import daisy.Arvados as Arvados
 from daisy.toolkit import redirect2mounts
 
 from daisy.tasks import map_tool_to_runner, \
@@ -163,7 +162,9 @@ def main(argv=sys.argv):
 
     if options.engine == "arvados":
 
-        crunch_json = Arvados.build_crunch_script(argv)
+        raise ValueError("arvados support disabled")
+        # crunch_json = Arvados.build_crunch_script(argv)
+        crunch_json = None
         retval = E.run('arv-crunch-job --job="$(cat {})"'.format(crunch_json))
 
         if retval != 0:
