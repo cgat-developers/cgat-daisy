@@ -9,6 +9,7 @@ jobs:
       matrix:
         os: [ubuntu, macos]
         python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
+        poetry-version: [1.1.11]
 
     steps:
       - name: Checkout cgat-daisy
@@ -19,18 +20,29 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install prerequisite Python libraries
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-pep8 flake8
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Run image
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+          
+      - name: Poetry install
+        run: poetry install
 
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Test with pytest
-        run: |
-          pytest
+      - name: Poetry install
+        run: poetry run pytest
+        
+      # - name: Install prerequisite Python libraries
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     pip install pytest pytest-pep8 flake8
+      #     if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # - name: Lint with flake8
+      #   run: |
+      #     # stop the build if there are Python syntax errors or undefined names
+      #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+      #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      # - name: Test with pytest
+      #   run: |
+      #     pytest
