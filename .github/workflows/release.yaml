@@ -31,7 +31,7 @@ jobs:
         uses: abatilo/actions-poetry@v2.0.0
           
       - name: Poetry install
-        run: poetry build 
+        run: poetry build --format=sdist
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
