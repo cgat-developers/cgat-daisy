@@ -54,10 +54,12 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
 
+  build_sdist:
+    name: Build source distribution on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
     strategy:
       matrix:
-        os: [ubuntu]  # , macos]
+        os: [ubuntu]
         python-version: [3.9]
 
     steps:
