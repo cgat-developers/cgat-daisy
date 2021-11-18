@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "cgat-daisy"
 version = "0.1.10"
-description = ""
+description = "A benchmarking framework"
 authors = ["Andreas Heger <andreas.heger@genomicsplc.com>"]
 packages = [
     { include = "daisy", from = "src" },

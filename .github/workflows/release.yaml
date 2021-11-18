@@ -3,7 +3,7 @@ name: Publish cgat-daisy wheels to PyPI and TestPyPI
 on:
   push:
     branches:
-      - v[0-9]+.[0-9]+.x
+      - v[0-9]+.[0-9]+*
     tags:
       - v*
   release:
@@ -11,13 +11,12 @@ on:
       - published
 
 jobs:
-  build_wheels:
+  build:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        cibw_archs: ["auto"]
+        os: [ubuntu-latest]
 
     steps:
       - name: Checkout cgat-daisy
@@ -30,41 +29,18 @@ jobs:
 
       - name: Run image
         uses: abatilo/actions-poetry@v2.0.0
-
-      - name: Poetry install
-        run: poetry install
-
+          
       - name: Poetry install
         run: poetry build --format=sdist
-        
-      - name: Build wheels for linux
-        if:   runner.os == 'Linux'
-        uses: pypa/cibuildwheel@v2.2.2
-        env:
-          CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-*
-          CIBW_SKIP: "*musllinux*"
-          CIBW_ARCHS: ${{ matrix.cibw_archs }}
-
-      # - name: Build wheels for macos
-      #   if:   runner.os != 'Linux'
-      #   uses: pypa/cibuildwheel@v2.2.2
-      #   env:
-      #     CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-*
-      #     CIBW_BEFORE_BUILD: pip install cython
-      #     CIBW_ARCHS: ${{ matrix.cibw_archs }}
-      - uses: actions/upload-artifact@v2
-        with:
-          path: dist/*.tar.gz
-
+          
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          path: ./wheelhouse/*.whl
+          path: dist/*
 
-          
   upload_pypi:
 
-    needs: [build_wheels, build_sdist]
+    needs: [build]
     runs-on: ubuntu-latest
 
     steps:
@@ -75,17 +51,19 @@ jobs:
           path: dist
 
       - name: Publish distribution to Test PyPI
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+        if: github.event_name == 'push'
         uses: pypa/gh-action-pypi-publish@master
         with:
+          verbose: true
           user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
 
-      # - name: Publish distribution to PyPI
-      #   if: github.event_name == 'release' && github.event.action == 'published'
-      #   uses: pypa/gh-action-pypi-publish@master
-      #   with:
-      #     user: __token__
-      #     password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish distribution to PyPI
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          verbose: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
