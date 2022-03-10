@@ -502,17 +502,17 @@ class Resource(object):
 
     def __enter__(self):
         table_cache = TableCache(*self.args)
-        E.info(f"{os.getpid()}: created resource={id(self)}: cache={id(table_cache)}")
+        E.debug(f"{os.getpid()}: created resource={id(self)}: cache={id(table_cache)}")
         self.table_cache = table_cache
         return self
 
     def __exit__(self, *args, **kwargs):
-        E.info(f"{os.getpid()}: resource={id(self)}: final table cache flush for cache={id(self.table_cache)} started")
-        E.info(f"{os.getpid()}: resource={id(self)}: cache={id(self.table_cache)}: "
-               f"{self.table_cache.get_cache_stats()}")
+        E.debug(f"{os.getpid()}: resource={id(self)}: final table cache flush for cache={id(self.table_cache)} started")
+        E.debug(f"{os.getpid()}: resource={id(self)}: cache={id(self.table_cache)}: "
+                f"{self.table_cache.get_cache_stats()}")
         self.table_cache.flush_all()
-        E.info(f"{os.getpid()}: resource={id(self)}: final table cache flush "
-               f"for cache={id(self.table_cache)} completed")
+        E.debug(f"{os.getpid()}: resource={id(self)}: final table cache flush "
+                f"for cache={id(self.table_cache)} completed")
 
 
 def open_resource(args):
@@ -533,7 +533,7 @@ def upload_metric(args):
                            upload_metric.table_cache,
                            instance_id)
 
-    E.info(f"{os.getpid()}: adding metrics for instance_id {instance_id} to cache={id(upload_metric.table_cache)}")
+    E.debug(f"{os.getpid()}: adding metrics for instance_id {instance_id} to cache={id(upload_metric.table_cache)}")
     save_metric_data(meta_data,
                      upload_metric.table_cache,
                      upload_metric.schema,
@@ -552,36 +552,38 @@ def setup_worker(f, *args):
     f.session = Session()
 
     resource_cm = open_resource(args)
-    E.info(f"{os.getpid()}: setting up worker for resource={id(resource)}")
+    E.debug(f"{os.getpid()}: setting up worker for resource={id(resource)}")
     old_resource = resource
     resource = resource_cm.__enter__()
-    E.info(f"{os.getpid()}: new worker for resource={id(resource)} (old_resource={id(old_resource)})")
+    E.debug(f"{os.getpid()}: new worker for resource={id(resource)} (old_resource={id(old_resource)})")
 
     # Register a finalizer to flush table cache
     Finalize(resource, resource.__exit__, exitpriority=16)
 
-    E.info(f"{os.getpid()}: adding cache={id(resource.table_cache)} from resource={id(resource)} "
-           f"to worker={id(f)}, session={id(f.session)}")
+    E.debug(f"{os.getpid()}: adding cache={id(resource.table_cache)} from resource={id(resource)} "
+            f"to worker={id(f)}, session={id(f.session)}")
     f.table_cache = resource.table_cache
 
 
 def upload_metrics_tables(infiles: list, run_id: int, schema, session, engine,
                           max_workers: int = 10):
 
-    is_sqlite3 = True
+    gis_sqlite3 = True
 
-    E.info(f"{os.getpid()}: collecting upload items for {len(infiles)} input files")
+    logger = P.get_logger()
+    
+    logger.info(f"{os.getpid()}: collecting upload items for {len(infiles)} input files")
     metric_f = generate_metric
     pool = multiprocessing.Pool(max_workers)
     metrics = pool.map(metric_f, infiles)
     pool.close()
     pool.join()
 
-    E.info(f"{os.getpid()}: instantiating {len(metrics)} metrics")
+    logger.info(f"{os.getpid()}: instantiating {len(metrics)} metrics")
     data = list(tqdm.tqdm(instantiate_metrics(metrics, session, run_id),
                           total=len(metrics)))
 
-    E.info(f"{os.getpid()}: uploading {len(data)} items")
+    logger.info(f"{os.getpid()}: uploading {len(data)} items")
     upload_f = upload_metric
     initargs = (upload_f, engine, schema, is_sqlite3)
     if max_workers == 1:
@@ -590,14 +592,14 @@ def upload_metrics_tables(infiles: list, run_id: int, schema, session, engine,
         global resource
         resource.table_cache.flush_all()
     else:
-        E.info(f"{os.getpid()}: loading data with {max_workers} cores")
+        logger.info(f"{os.getpid()}: loading data with {max_workers} cores")
         pool = multiprocessing.Pool(max_workers, initializer=setup_worker, initargs=initargs)
         pool.map(upload_f, data)
         pool.close()
         pool.join()
 
 
-def upload_result(infiles, outfile, *extras, max_workers: int = 10):
+def upload_result(infiles, outfile, *extras):
     """upload results into database.
 
     Connection details for the database are taken from the
@@ -608,6 +610,10 @@ def upload_result(infiles, outfile, *extras, max_workers: int = 10):
     called csvdb, use::
 
         config = {"database": {"url": "sqlite:///./csvdb"}}
+
+    To use multiple cores, try::
+
+        config = {"database": {"url": "sqlite:///./csvdb", "cores": 10}}
 
     Arguments
     ---------
@@ -634,6 +640,8 @@ def upload_result(infiles, outfile, *extras, max_workers: int = 10):
     url = config["database"]["url"]
     is_sqlite3 = url.startswith("sqlite")
 
+    max_workers = config["database"].get("cores", 1)
+    
     if is_sqlite3:
         connect_args = {'check_same_thread': False}
     else:
@@ -703,7 +711,8 @@ def upload_result(infiles, outfile, *extras, max_workers: int = 10):
 
     session.commit()
 
-    upload_metrics_tables(infiles, benchmark_run.id, schema, session, engine,
+    upload_metrics_tables(infiles,
+                          benchmark_run.id, schema, session, engine,
                           max_workers=max_workers)
 
     # upload table sizes
@@ -755,6 +764,8 @@ def get_instance_ids_for_run_id(run_id, engine):
 def purge_run_id(run_id, url, dry_run=False, schemas=None):
     """remove a run from a database.
     """
+
+    logger = P.get_logger()
     engine = sqlalchemy.create_engine(url)
     connection = engine.connect()
 
@@ -773,9 +784,9 @@ def purge_run_id(run_id, url, dry_run=False, schemas=None):
         if 'information_schema' in schemas:
             schemas.remove('information_schema')
 
-    E.debug("getting instance_id list of run_id={}".format(run_id))
+    logger.debug("getting instance_id list of run_id={}".format(run_id))
     instance_ids = set(get_instance_ids_for_run_id(run_id, engine))
-    E.debug("found {} instances for run_id={}".format(len(instance_ids), run_id))
+    logger.debug("found {} instances for run_id={}".format(len(instance_ids), run_id))
     non_metric_tables = ['run',
                          'instance',
                          'binary_data',
@@ -798,10 +809,9 @@ def purge_run_id(run_id, url, dry_run=False, schemas=None):
                                          autoload=True)
                 if "instance_id" not in table.c:
                     continue
-                E.info("deleting data in {}".format(table_name))
+                logger.debug("deleting data in {}".format(table_name))
                 delete = table.delete().where(
                     table.c.instance_id.in_(instance_ids))
-                # E.debug(delete)
                 if not dry_run:
                     connection.execute(delete)
 
@@ -810,15 +820,13 @@ def purge_run_id(run_id, url, dry_run=False, schemas=None):
         table = sqlalchemy.Table(table_name, metadata, autoload=True)
         if "run_id" not in table.c:
             continue
-        E.info("deleting data in {} for run_id {}".format(table_name, run_id))
+        logger.info("deleting data in {} for run_id {}".format(table_name, run_id))
         delete = table.delete().where(table.c.run_id == run_id)
-        # E.debug(delete)
         if not dry_run:
             connection.execute(delete)
 
     table = sqlalchemy.Table('run', metadata, autoload=True)
     delete = table.delete().where(table.c.id == run_id)
-    E.info("deleting data in 'run' for id {}".format(run_id))
-    # E.debug(delete)
+    logger.info("deleting data in 'run' for id {}".format(run_id))
     if not dry_run:
         connection.execute(delete)
