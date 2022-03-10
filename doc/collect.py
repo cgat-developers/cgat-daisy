@@ -46,7 +46,7 @@ def main(argv=None):
         tool_module = re.sub(".py", "", os.path.basename(tool))
         tool_name = re.sub("_", "-", tool_module)
         if tool_name in ("__init__", "cli"):
-            c.ignored += 1
+            counter.ignored += 1
             continue
 
         dest = os.path.join("tools", "{}.rst".format(tool_name))

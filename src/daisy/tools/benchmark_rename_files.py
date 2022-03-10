@@ -24,8 +24,8 @@ import cgatcore.pipeline as P
 import cgatcore.experiment as E
 import cgatcore.iotools as IOTools
 
-import daisy.workflow as Workflow
-import daisy.toolkit as Toolkit
+import daisy.workflow as workflow
+import daisy.toolkit as toolkit
 
 # import tasks to apply in this pipeline
 from daisy.tasks import map_tool_to_runner, \
