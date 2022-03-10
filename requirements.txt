@@ -5,6 +5,4 @@ ruffus
 ruamel_yaml
 pytest
 pysam
-paramiko
-gevent
-apsw
+tqdm
