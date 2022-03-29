@@ -42,7 +42,7 @@ import cgatcore.iotools as IOTools
 import cgatcore.experiment as E
 
 from daisy.toolkit import touch, read_data, hash
-from daisy.table_cache import TableCache
+from daisy.table_cache import TableCache, create_engine
 
 
 ######################################################
@@ -497,11 +497,12 @@ resource = None
 
 
 class Resource(object):
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, database_url: str, schema: str):
+        self.database_url = database_url
+        self.schema = schema
 
     def __enter__(self):
-        table_cache = TableCache(*self.args)
+        table_cache = TableCache(self.database_url, self.schema)
         E.debug(f"{os.getpid()}: created resource={id(self)}: cache={id(table_cache)}")
         self.table_cache = table_cache
         return self
@@ -515,8 +516,8 @@ class Resource(object):
                 f"for cache={id(self.table_cache)} completed")
 
 
-def open_resource(args):
-    return Resource(args)
+def open_resource(url, schema):
+    return Resource(url, schema)
 
 
 def upload_metric(args):
@@ -545,13 +546,13 @@ def setup_worker(f, *args):
 
     global resource
 
-    engine, schema, is_sqlite = args
-    engine.dispose()
+    url, schema = args
+
     f.schema = schema
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker()
     f.session = Session()
 
-    resource_cm = open_resource(args)
+    resource_cm = open_resource(url, schema)
     E.debug(f"{os.getpid()}: setting up worker for resource={id(resource)}")
     old_resource = resource
     resource = resource_cm.__enter__()
@@ -565,12 +566,18 @@ def setup_worker(f, *args):
     f.table_cache = resource.table_cache
 
 
-def upload_metrics_tables(infiles: list, run_id: int, schema, session, engine,
+def upload_metrics_tables(infiles: list,
+                          run_id: int,
+                          schema,
+                          url: str,
                           max_workers: int = 10):
 
-    gis_sqlite3 = True
-
     logger = P.get_logger()
+
+    engine = create_engine(url)
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
     
     logger.info(f"{os.getpid()}: collecting upload items for {len(infiles)} input files")
     metric_f = generate_metric
@@ -585,7 +592,7 @@ def upload_metrics_tables(infiles: list, run_id: int, schema, session, engine,
 
     logger.info(f"{os.getpid()}: uploading {len(data)} items")
     upload_f = upload_metric
-    initargs = (upload_f, engine, schema, is_sqlite3)
+    initargs = (upload_f, url, schema)
     if max_workers == 1:
         setup_worker(*initargs)
         result = list(map(upload_f, data))
@@ -638,22 +645,13 @@ def upload_result(infiles, outfile, *extras):
     config = extras[0]
 
     url = config["database"]["url"]
-    is_sqlite3 = url.startswith("sqlite")
-
     max_workers = config["database"].get("cores", 1)
     
-    if is_sqlite3:
-        connect_args = {'check_same_thread': False}
-    else:
-        connect_args = {}
-
     schema = config["database"].get("schema", None)
     # TODO: check if schema exists to avoid incomplete
     # transaction.
 
-    engine = sqlalchemy.create_engine(
-        url,
-        connect_args=connect_args)
+    engine = create_engine(url)
 
     # Catch exceptions until database access on thame available
     try:
@@ -668,7 +666,7 @@ def upload_result(infiles, outfile, *extras):
     # Create schema if not exists
     if schema is not None:
         engine.execute(
-            text("CREATE SCHEMA IF NOT EXISTS {}".format(schema)))
+            str(text("CREATE SCHEMA IF NOT EXISTS {}".format(schema))))
 
     pipeline_name = os.path.basename(sys.argv[0])
     logger.debug("uploading data to {}, schema={}".format(url, schema))
@@ -710,9 +708,13 @@ def upload_result(infiles, outfile, *extras):
         session.add(benchmark_tag)
 
     session.commit()
+    engine.dispose()
+    del engine
 
     upload_metrics_tables(infiles,
-                          benchmark_run.id, schema, session, engine,
+                          benchmark_run.id,
+                          schema,
+                          url,
                           max_workers=max_workers)
 
     # upload table sizes
@@ -727,11 +729,9 @@ def upload_result(infiles, outfile, *extras):
     #            schema=None,
     #            is_sqlite3=is_sqlite3)
 
-    benchmark_run.status = "complete"
-    session.commit()
+    # benchmark_run.status = "complete"
+    # session.commit()
 
-    engine.dispose()
-    del engine
 
     logger.info("uploaded results under run_id {}".format(benchmark_run.id))
     touch(outfile)
