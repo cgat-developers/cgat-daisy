@@ -10,7 +10,7 @@ from daisy.storage import upload_result
 def benchmark_layout(tmp_path):
 
     ntools = 2
-    nmetrics = 2000
+    nmetrics = 1000
 
     tools = [f"tool{x}" for x in range(ntools)]
     metrics = [f"metric{x}" for x in range(nmetrics)]
@@ -75,6 +75,8 @@ def test_upload(benchmark_layout, tmp_path, max_workers):
     with db_engine.connect() as conn:
         run_df = pandas.read_sql("SELECT * FROM run", conn)
     assert len(run_df) == 1
+
+    assert run_df.status[0] == "complete"
 
     with db_engine.connect() as conn:
         ins_df = pandas.read_sql("SELECT * FROM instance", conn)

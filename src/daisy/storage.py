@@ -606,6 +606,14 @@ def upload_metrics_tables(infiles: list,
         pool.join()
 
 
+def mark_upload_complete(url: str, run_id: int):
+    engine = create_engine(url)
+    session = sessionmaker(bind=engine)()
+    benchmark_run = session.query(BenchmarkRun).filter_by(id=run_id).first()
+    benchmark_run.status = "complete"
+    session.commit()
+
+
 def upload_result(infiles, outfile, *extras):
     """upload results into database.
 
@@ -729,9 +737,7 @@ def upload_result(infiles, outfile, *extras):
     #            schema=None,
     #            is_sqlite3=is_sqlite3)
 
-    # benchmark_run.status = "complete"
-    # session.commit()
-
+    mark_upload_complete(url, benchmark_run.id)
 
     logger.info("uploaded results under run_id {}".format(benchmark_run.id))
     touch(outfile)

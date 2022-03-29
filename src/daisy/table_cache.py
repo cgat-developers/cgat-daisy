@@ -346,7 +346,12 @@ class TableCache():
         if self.database_url is None:
             return
 
-        engine = create_engine(self.database_url)
+        try:
+            engine = create_engine(self.database_url)
+        except AttributeError:
+            # do not create indices if sqlalchemy already shut down
+            return
+
         if not self.have_created_indices:
             for index_name, info in self.indices.items():
                 table_name, fields = info
