@@ -10,7 +10,7 @@ from daisy.storage import upload_result
 def benchmark_layout(tmp_path):
 
     ntools = 2
-    nmetrics = 4000
+    nmetrics = 1000
 
     tools = [f"tool{x}" for x in range(ntools)]
     metrics = [f"metric{x}" for x in range(nmetrics)]
@@ -52,7 +52,7 @@ def benchmark_layout(tmp_path):
     return outfiles, tools, metrics
 
 
-@pytest.mark.parametrize("max_workers", [1, 5])
+@pytest.mark.parametrize("max_workers", [1, 2, 5])
 def test_upload(benchmark_layout, tmp_path, max_workers):
 
     outfiles, tools, metrics = benchmark_layout
@@ -62,8 +62,7 @@ def test_upload(benchmark_layout, tmp_path, max_workers):
                   {"title": "test",
                    "description": "test",
                    "tags": [],
-                   "database": {"url": db_path}},
-                  max_workers=max_workers)
+                   "database": {"url": db_path, "cores": max_workers}})
 
     db_engine = sqlalchemy.create_engine(db_path)
 
@@ -76,6 +75,8 @@ def test_upload(benchmark_layout, tmp_path, max_workers):
     with db_engine.connect() as conn:
         run_df = pandas.read_sql("SELECT * FROM run", conn)
     assert len(run_df) == 1
+
+    assert run_df.status[0] == "complete"
 
     with db_engine.connect() as conn:
         ins_df = pandas.read_sql("SELECT * FROM instance", conn)

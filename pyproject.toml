@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cgat-daisy"
-version = "0.1.10"
+version = "0.1.11"
 description = "A benchmarking framework"
 authors = ["Andreas Heger <andreas.heger@genomicsplc.com>"]
 packages = [
@@ -19,6 +19,7 @@ paramiko = "^2.8.0"
 PyYAML = "^6.0"
 gevent = "^21.8.0"
 apsw = "^3.36.0"
+tqdm = "^4.63.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
