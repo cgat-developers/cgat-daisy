@@ -224,5 +224,4 @@ def arvados_enabled(*args, **kwargs):
     try:
         yield params
     finally:
-        E.debug("cleaning up arvados")
         arvados_cleanup()

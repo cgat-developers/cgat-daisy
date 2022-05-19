@@ -143,12 +143,12 @@ class TestMetric(unittest.TestCase):
                 break
 
         if infiles is None:
-            self.skipTest("no input files specified for {}".format(taskf.name))
+            self.skipTest(f"no input files specified for {taskf.name}")
             return
 
         tmpdir = tempfile.mkdtemp(dir=".",
-                                  prefix="tmp_{}_".format(taskf.name))
-        outfile = os.path.join(tmpdir, "output.tsv")
+                                  prefix=f"tmp_{taskf.name}_")
+        outfile = os.path.join(tmpdir, f"{taskf.name}.tsv")
 
         # instantiate task
         task = taskf()

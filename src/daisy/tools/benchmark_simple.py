@@ -222,8 +222,6 @@ def main(argv):
         E.debug("starting workflow")
         P.run_workflow(options, pipeline=pipeline)
 
-    E.stop()
-
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[:]))
