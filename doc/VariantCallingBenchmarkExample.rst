@@ -16,7 +16,7 @@ We start by creating a conda environment and installing daisy::
     conda create -y -n daisy python=3.6 matplotlib
     pip install cgatcore
     pip install cgat-daisy
-    conda install ruamel_yaml pysam
+    conda install ruamel.yaml pysam
 
 .. note::
 

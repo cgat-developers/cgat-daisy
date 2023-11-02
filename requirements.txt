@@ -2,7 +2,7 @@ cgatcore
 pandas
 sqlalchemy
 ruffus
-ruamel_yaml
+ruamel.yaml
 pytest
 pysam
 tqdm

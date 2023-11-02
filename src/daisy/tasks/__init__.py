@@ -5,14 +5,9 @@ import os
 import glob
 import importlib
 import importlib.util
-# bioconda: ruamel.yml
-# defaults: ruamel_yaml
-try:
-    import ruamel_yaml as yaml
-    from ruamel_yaml import RoundTripLoader
-except ImportError:
-    from ruamel import yaml
-    from ruamel.yaml import RoundTripLoader
+
+from ruamel import yaml
+from ruamel.yaml import RoundTripLoader
 
 import cgatcore.iotools as IOTools
 import daisy.toolkit
