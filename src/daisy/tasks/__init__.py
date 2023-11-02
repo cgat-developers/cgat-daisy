@@ -6,8 +6,7 @@ import glob
 import importlib
 import importlib.util
 
-from ruamel import yaml
-from ruamel.yaml import RoundTripLoader
+from ruamel.yaml import YAML
 
 import cgatcore.iotools as IOTools
 import daisy.toolkit
@@ -26,7 +25,7 @@ def get_default_params():
     defaults = os.path.join(os.path.dirname(__file__), "defaults.yml")
     if os.path.exists(defaults):
         with IOTools.open_file(defaults) as inf:
-            result = yaml.load(inf, Loader=RoundTripLoader)
+            result = YAML(typ="rt").load(inf)
     else:
         result = {}
     return result
